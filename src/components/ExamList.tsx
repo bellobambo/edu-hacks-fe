@@ -191,7 +191,7 @@ export default function ExamList() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer sk-c0e7e9f333a245c4979cdb61b2ff113e`,
+            Authorization: `Bearer ${process.env.NEXT_PUBLIC_DEEPSEEKAPI}`,
           },
           body: JSON.stringify({
             text: lectureNoteText,
