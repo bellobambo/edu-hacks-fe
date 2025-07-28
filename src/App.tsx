@@ -1,35 +1,62 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import "./App.css";
+import RegisterUser from "./components/RegisterUser";
+import ViewProfile from "./components/ViewProfile";
+import { useState } from "react";
+import { useCourseContract } from "./hooks/useCourseContract";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const { error, account, disconnect, connect } = useCourseContract();
+  const [isRegistered, setIsRegistered] = useState<boolean | null>(null);
+
+  const handleRegistrationSuccess = () => {
+    setIsRegistered(true);
+  };
+
+  const handleNotRegistered = () => {
+    setIsRegistered(false);
+  };
+
+  const handleSignOut = () => {
+    disconnect();
+    setIsRegistered(null);
+  };
+
+  if (!account) {
+    return (
+      <div className="p-6 space-y-6">
+        <h1 className="text-xl font-bold">Course Contract UI</h1>
+        <button
+          onClick={connect}
+          className="bg-blue-500 text-white px-4 py-2 rounded"
+        >
+          Connect Wallet
+        </button>
+        {error && <p className="text-red-500">{error}</p>}
+      </div>
+    );
+  }
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
+    <div className="p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-xl font-bold">Course Contract UI</h1>
+        <button
+          onClick={handleSignOut}
+          className="bg-red-500 text-white px-4 py-2 rounded"
+        >
+          Disconnect
         </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
       </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+
+      {isRegistered === null ? (
+        <ViewProfile onNotRegistered={handleNotRegistered} />
+      ) : isRegistered ? (
+        <ViewProfile />
+      ) : (
+        <RegisterUser onRegistrationSuccess={handleRegistrationSuccess} />
+      )}
+    </div>
+  );
 }
 
-export default App
+export default App;
