@@ -1,87 +1,85 @@
 import { useEffect, useState } from "react";
 import { useCourseContract } from "../hooks/useCourseContract";
 import { useExamContract } from "../hooks/useExamContract";
-import * as pdfjsLib from "pdfjs-dist";
+import TakeExam from "./TakeExam";
 
 type Exam = {
   courseId: number;
   examId: number;
   title: string;
-  duration: number; // minutes
+  duration: number;
   examAddress: string;
-};
-
-type GeneratedQuestion = {
-  questionText: string;
-  options: string[];
-  correctOption: number;
 };
 
 export default function ExamList() {
   const { contract: courseContract, account } = useCourseContract();
-  const { contract: examContract, isLoading: examLoading } = useExamContract();
+
+  const [selectedExamAddress, setSelectedExamAddress] = useState<string>("");
+
+  // Hook to get exam contract for selected exam address
+  const { contract: selectedExamContract, isLoading: examContractLoading } =
+    useExamContract(selectedExamAddress);
 
   const [isLecturer, setIsLecturer] = useState<boolean | null>(null);
   const [studentExams, setStudentExams] = useState<Exam[]>([]);
   const [lecturerExams, setLecturerExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // File upload & lecture note extraction states
-  const [lectureNoteFile, setLectureNoteFile] = useState<File | null>(null);
-  const [lectureNoteText, setLectureNoteText] = useState<string>("");
+  const [generatedQuestions, setGeneratedQuestions] = useState<any[]>([]);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [questionCount, setQuestionCount] = useState(5);
+  const [result, setResult] = useState("");
+  const [error, setError] = useState("");
 
-  // AI question generation states
-  const [generatedQuestions, setGeneratedQuestions] = useState<
-    GeneratedQuestion[]
-  >([]);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiError, setAiError] = useState<string | null>(null);
+  // Parses AI output text into structured questions
+  function parseQuestions(rawText: string): any[] {
+    const questionBlocks = rawText
+      .split(/\n---+\n/) // markdown dividers
+      .map((b) => b.trim())
+      .filter(Boolean);
 
-  // Handle file input change
-  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    setLectureNoteFile(file ?? null);
-  };
+    const parsed = questionBlocks.map((block) => {
+      const lines = block.split("\n").map((l) => l.trim());
 
-  // Extract text from uploaded file (PDF or TXT)
-  const extractTextFromFile = async (file: File): Promise<string> => {
-    if (file.type === "application/pdf") {
-      // PDF extraction
-      const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-      let text = "";
-
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const content = await page.getTextContent();
-        const pageText = content.items.map((item: any) => item.str).join(" ");
-        text += pageText + "\n\n";
-      }
-      return text;
-    } else if (file.type === "text/plain") {
-      // Plain text file
-      return await file.text();
-    } else {
-      throw new Error(
-        "Unsupported file type. Please upload PDF or plain text."
+      const questionLine = lines.find((line) =>
+        /^###\s*\*\*\d+\.\s/.test(line)
       );
-    }
-  };
+      if (!questionLine) return null;
 
-  // When lectureNoteFile changes, extract text automatically
-  useEffect(() => {
-    if (!lectureNoteFile) {
-      setLectureNoteText("");
-      return;
-    }
-    setAiError(null);
-    setAiLoading(true);
+      const questionText = questionLine
+        .replace(/^###\s*\*\*\d+\.\s*/, "")
+        .replace(/\*\*$/, "")
+        .trim();
 
-    extractTextFromFile(lectureNoteFile)
-      .then((text) => setLectureNoteText(text))
-      .catch((e) => setAiError(e.message))
-      .finally(() => setAiLoading(false));
-  }, [lectureNoteFile]);
+      const optionLines = lines.filter((line) => /^[A-D]\)/.test(line));
+      const options = optionLines.map((opt) =>
+        opt.replace(/^[A-D]\)\s*/, "").trim()
+      );
+
+      const correctLine = lines.find((line) =>
+        /\*\*Correct Answer:\*\*/i.test(line)
+      );
+      if (!correctLine) return null;
+
+      const correctMatch = correctLine.match(
+        /\*\*Correct Answer:\*\*\s*\*\*([A-D])/i
+      );
+      if (!correctMatch) return null;
+
+      const correctLetter = correctMatch[1].toUpperCase();
+      const correctIndex = correctLetter.charCodeAt(0) - 65;
+
+      if (options.length < 2 || correctIndex >= options.length) return null;
+
+      return {
+        questionText,
+        options,
+        correctOption: correctIndex,
+      };
+    });
+
+    return parsed.filter(Boolean) as any[];
+  }
 
   // Fetch user role (lecturer or student)
   const fetchUserRole = async () => {
@@ -94,10 +92,9 @@ export default function ExamList() {
     }
   };
 
-  // Fetch all exams for student (only enrolled courses)
+  // Fetch exams student is enrolled in
   const fetchStudentExams = async () => {
     if (!courseContract || !account) return;
-
     setLoading(true);
     try {
       const totalCourses = await courseContract.courseCount();
@@ -113,20 +110,20 @@ export default function ExamList() {
         const course = await courseContract.courses(courseId);
         const examCount = Number(course.examCount);
 
-        for (let examId = 0; examId < examCount; examId++) {
-          const examAddress = await courseContract.getExamAddress(
-            courseId,
-            examId
-          );
+        const examPromises = Array.from({ length: examCount }, (_, examId) =>
+          courseContract
+            .getExamAddress(courseId, examId)
+            .then((examAddress) => ({
+              courseId,
+              examId,
+              title: `Exam #${examId + 1} of ${course.title}`,
+              duration: 0,
+              examAddress,
+            }))
+        );
 
-          exams.push({
-            courseId,
-            examId,
-            title: `Exam #${examId + 1} of ${course.title}`,
-            duration: 0,
-            examAddress,
-          });
-        }
+        const examsForCourse = await Promise.all(examPromises);
+        exams.push(...examsForCourse);
       }
 
       setStudentExams(exams);
@@ -137,10 +134,9 @@ export default function ExamList() {
     }
   };
 
-  // Fetch exams created by lecturer (all exams in owned courses)
+  // Fetch exams lecturer created
   const fetchLecturerExams = async () => {
     if (!courseContract || !account) return;
-
     setLoading(true);
     try {
       const totalCourses = await courseContract.courseCount();
@@ -152,19 +148,20 @@ export default function ExamList() {
 
         const examCount = Number(course.examCount);
 
-        for (let examId = 0; examId < examCount; examId++) {
-          const examAddress = await courseContract.getExamAddress(
-            courseId,
-            examId
-          );
-          exams.push({
-            courseId,
-            examId,
-            title: `Exam #${examId + 1} of ${course.title}`,
-            duration: 0,
-            examAddress,
-          });
-        }
+        const examPromises = Array.from({ length: examCount }, (_, examId) =>
+          courseContract
+            .getExamAddress(courseId, examId)
+            .then((examAddress) => ({
+              courseId,
+              examId,
+              title: `Exam #${examId + 1} of ${course.title}`,
+              duration: 0,
+              examAddress,
+            }))
+        );
+
+        const examsForCourse = await Promise.all(examPromises);
+        exams.push(...examsForCourse);
       }
 
       setLecturerExams(exams);
@@ -175,63 +172,101 @@ export default function ExamList() {
     }
   };
 
-  // Generate questions from lectureNoteText using DeepSeek AI
-  async function generateQuestionsFromNote() {
-    if (!lectureNoteText.trim()) {
-      setAiError("Lecture note text is empty.");
-      return;
-    }
-    setAiLoading(true);
-    setAiError(null);
-
-    try {
-      const response = await fetch(
-        "https://api.deepseek.com/generate-questions",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_API_KEY_DEEPSEEKAPI}`,
-          },
-          body: JSON.stringify({
-            text: lectureNoteText,
-            numberOfQuestions: 5,
-          }),
-        }
-      );
-
-      if (!response.ok) throw new Error("AI generation failed");
-
-      const data = await response.json();
-
-      // Assuming API returns { questions: GeneratedQuestion[] }
-      setGeneratedQuestions(data.questions);
-    } catch (err: any) {
-      setAiError(err.message || "Failed to generate questions");
-    } finally {
-      setAiLoading(false);
+  // Handle file upload
+  function handleFileChange(e: any) {
+    const file = e.target.files[0];
+    if (
+      file &&
+      (file.type === "text/plain" ||
+        file.type === "application/pdf" ||
+        file.name.endsWith(".docx") ||
+        file.type ===
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+    ) {
+      setUploadedFile(file);
+      setError("");
+    } else {
+      setUploadedFile(null);
+      setError("Please upload a valid .txt, .pdf, or .docx file.");
     }
   }
 
-  // Add generated questions to the exam contract
-  async function addGeneratedQuestionsToContract() {
-    if (!examContract || generatedQuestions.length === 0) return;
+  // Submit file to backend for AI question generation
+  async function handleSubmit() {
+    if (!uploadedFile) {
+      setError("No file uploaded.");
+      return;
+    }
+
+    if (questionCount < 1 || questionCount > 50) {
+      setError("Please enter a number between 1 and 50.");
+      return;
+    }
+
+    setLoading(true);
+    setResult("");
+    setError("");
+
+    const formData = new FormData();
+    formData.append("file", uploadedFile);
+    formData.append("questionCount", questionCount.toString());
 
     try {
-      for (const q of generatedQuestions) {
-        await examContract.addQuestion(
-          q.questionText,
-          q.options,
-          q.correctOption
-        );
+      const res = await fetch("http://localhost:3000/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (data.error) {
+        setError(data.error);
+      } else {
+        setResult(data.result);
+        const parsed = parseQuestions(data.result);
+        setGeneratedQuestions(parsed);
       }
-      alert("Questions added to exam contract!");
+    } catch (err) {
+      setError("Something went wrong.");
+      console.error(err);
+    }
+
+    setLoading(false);
+  }
+
+  // Add generated questions to the exam contract on-chain
+  async function addGeneratedQuestionsToContract() {
+    if (!selectedExamContract) {
+      alert("Please select an exam first.");
+      return;
+    }
+
+    if (generatedQuestions.length === 0) {
+      alert("No generated questions to add.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const questionTexts = generatedQuestions.map((q) => q.questionText);
+      const options = generatedQuestions.map((q) => q.options);
+      const correctOptions = generatedQuestions.map((q) => q.correctOption);
+
+      const tx = await selectedExamContract.addQuestionsBatch(
+        questionTexts,
+        options,
+        correctOptions
+      );
+      await tx.wait();
+
+      alert("All questions added successfully!");
       setGeneratedQuestions([]);
-      setLectureNoteFile(null);
-      setLectureNoteText("");
     } catch (err) {
       console.error("Error adding questions:", err);
       alert("Failed to add questions to contract.");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -260,16 +295,6 @@ export default function ExamList() {
 
       {loading && <p>Loading exams...</p>}
 
-      {isLecturer && lecturerExams.length === 0 && (
-        <p className="text-gray-500">You haven't created any exams yet.</p>
-      )}
-
-      {!isLecturer && studentExams.length === 0 && (
-        <p className="text-gray-500">
-          You have no exams because you are not enrolled in any courses.
-        </p>
-      )}
-
       <ul className="space-y-4">
         {(isLecturer ? lecturerExams : studentExams).map((exam) => (
           <li
@@ -285,75 +310,121 @@ export default function ExamList() {
             <p className="text-sm text-gray-600 break-all">
               Address: {exam.examAddress}
             </p>
+
+            {!isLecturer && (
+              <button
+                className="mt-2 px-4 py-1 bg-blue-600 text-white rounded"
+                onClick={() => setSelectedExamAddress(exam.examAddress)}
+              >
+                Take This Exam
+              </button>
+            )}
           </li>
         ))}
       </ul>
 
-      {/* --- Lecturer's AI question generation UI --- */}
       {isLecturer && (
-        <div className="mt-8 p-4 border rounded bg-purple-50">
-          <h3 className="text-xl font-semibold mb-2">
-            Upload Lecture Note & Generate Questions
-          </h3>
+        <div className="max-w-2xl mx-auto mt-12 bg-white shadow-md rounded-xl p-6 space-y-6">
+          <h2 className="text-2xl font-bold text-gray-800">
+            Generate Exam Questions
+          </h2>
 
           <input
             type="file"
-            accept=".pdf,.txt"
-            onChange={onFileChange}
-            disabled={aiLoading}
-            className="mb-2"
+            onChange={handleFileChange}
+            accept=".txt,.pdf,.docx"
+            className="w-full border rounded-md p-2"
           />
 
-          {aiLoading && <p>Extracting and generating questions...</p>}
-          {aiError && <p className="text-red-600">{aiError}</p>}
+          <input
+            type="number"
+            min={1}
+            max={50}
+            value={questionCount}
+            onChange={(e) => setQuestionCount(Number(e.target.value))}
+            className="w-full border rounded-md p-2"
+          />
+
+          {error && <p className="text-red-600">{error}</p>}
 
           <button
-            className="px-4 py-2 bg-purple-700 text-white rounded disabled:opacity-50"
-            onClick={generateQuestionsFromNote}
-            disabled={aiLoading || !lectureNoteText.trim()}
+            onClick={handleSubmit}
+            disabled={loading || !uploadedFile}
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
           >
-            Generate Questions from Lecture Note
+            {loading ? "Generating..." : "Generate Questions"}
           </button>
 
           {generatedQuestions.length > 0 && (
-            <>
-              <h4 className="mt-4 font-semibold">
-                Preview Generated Questions:
-              </h4>
-              <ul className="list-decimal pl-6 mt-2 space-y-3">
-                {generatedQuestions.map((q, i) => (
-                  <li key={i}>
-                    <p>
-                      <strong>Q:</strong> {q.questionText}
-                    </p>
-                    <ul className="list-disc pl-6">
-                      {q.options.map((opt, idx) => (
-                        <li
-                          key={idx}
+            <div className="mt-6 space-y-6">
+              {generatedQuestions.map((q, idx) => (
+                <div
+                  key={idx}
+                  className="bg-white border border-gray-200 p-4 rounded-md shadow-sm"
+                >
+                  <h3 className="font-semibold text-lg mb-2">
+                    {idx + 1}. {q.questionText}
+                  </h3>
+                  <ul className="space-y-1">
+                    {q.options.map((opt: string, i: number) => (
+                      <li key={i} className="p-2 rounded-md bg-gray-100">
+                        <span className="font-medium">
+                          ({String.fromCharCode(97 + i)})
+                        </span>{" "}
+                        <span
                           className={
-                            idx === q.correctOption
-                              ? "font-bold text-green-600"
+                            i === q.correctOption
+                              ? "font-bold text-green-700"
                               : ""
                           }
                         >
                           {opt}
-                        </li>
-                      ))}
-                    </ul>
-                  </li>
-                ))}
-              </ul>
-
-              <button
-                className="mt-4 px-4 py-2 bg-green-600 text-white rounded"
-                onClick={addGeneratedQuestionsToContract}
-                disabled={examLoading}
-              >
-                Add Questions to Exam Contract
-              </button>
-            </>
+                        </span>
+                        {i === q.correctOption && (
+                          <span className="ml-2 text-sm text-green-600 font-medium">
+                            (Correct)
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
           )}
+
+          {lecturerExams.length > 0 && (
+            <select
+              className="w-full border rounded-md p-2"
+              value={selectedExamAddress}
+              onChange={(e) => setSelectedExamAddress(e.target.value)}
+              disabled={examContractLoading}
+            >
+              <option value="">-- Select an Exam --</option>
+              {lecturerExams.map((exam) => (
+                <option key={exam.examAddress} value={exam.examAddress}>
+                  {exam.title}
+                </option>
+              ))}
+            </select>
+          )}
+
+          <button
+            onClick={addGeneratedQuestionsToContract}
+            disabled={
+              !selectedExamContract ||
+              generatedQuestions.length === 0 ||
+              loading
+            }
+            className="mt-4 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:opacity-50"
+          >
+            Add Questions to Selected Exam
+          </button>
         </div>
+      )}
+
+      {!isLecturer && selectedExamAddress && (
+        <TakeExam examAddress={selectedExamAddress} studentAccount={account!} />
       )}
     </div>
   );

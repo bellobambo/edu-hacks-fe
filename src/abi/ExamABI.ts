@@ -1,5 +1,5 @@
 export const examContractAddress =
-  "0x8E090bE859C4d96665854Ae2787990573889F19C" as `0x${string}`;
+  "0x51Ae025a060AFaf1B1e745Bb2AF5d07DF44AD836" as `0x${string}`;
 
 export const ExamABI = [
   {
@@ -82,6 +82,29 @@ export const ExamABI = [
       },
     ],
     name: "addQuestion",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "string[]",
+        name: "_questionTexts",
+        type: "string[]",
+      },
+      {
+        internalType: "string[][]",
+        name: "_options",
+        type: "string[][]",
+      },
+      {
+        internalType: "uint8[]",
+        name: "_correctOptions",
+        type: "uint8[]",
+      },
+    ],
+    name: "addQuestionsBatch",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",

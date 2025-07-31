@@ -1,5 +1,5 @@
 export const courseContractAddress =
-  "0xB94988fe226a2Ee1574C3335E69bac25f38a960C" as `0x${string}`;
+  "0x18051371A6F270491fB042FaeA762446898827eF" as `0x${string}`;
 
 export const CourseABI = [
   {

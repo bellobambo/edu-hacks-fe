@@ -1,11 +1,11 @@
 import "./App.css";
 import RegisterUser from "./components/RegisterUser";
 import ViewProfile from "./components/ViewProfile";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useCourseContract } from "./hooks/useCourseContract";
 
 function App() {
-  const { error, account, disconnect, connect } = useCourseContract();
+  const { error, account, disconnect, connect, contract } = useCourseContract();
   const [isRegistered, setIsRegistered] = useState<boolean | null>(null);
 
   const handleRegistrationSuccess = () => {
@@ -20,6 +20,26 @@ function App() {
     disconnect();
     setIsRegistered(null);
   };
+
+  // Check registration status on wallet connection
+  useEffect(() => {
+    const checkRegistrationStatus = async () => {
+      if (contract && account) {
+        try {
+          const profile = await contract.getUserProfile(account);
+          const registered =
+            profile.walletAddress !==
+            "0x0000000000000000000000000000000000000000";
+          setIsRegistered(registered);
+        } catch (err) {
+          console.error("Error checking registration:", err);
+          setIsRegistered(false);
+        }
+      }
+    };
+
+    checkRegistrationStatus();
+  }, [contract, account]);
 
   if (!account) {
     return (
@@ -48,11 +68,11 @@ function App() {
         </button>
       </div>
 
-      {isRegistered === null ? (
-        <ViewProfile onNotRegistered={handleNotRegistered} />
-      ) : isRegistered ? (
-        <ViewProfile />
-      ) : (
+      {isRegistered === true && (
+        <ViewProfile onNotRegistered={handleNotRegistered} account={account} />
+      )}
+
+      {isRegistered === false && (
         <RegisterUser onRegistrationSuccess={handleRegistrationSuccess} />
       )}
     </div>

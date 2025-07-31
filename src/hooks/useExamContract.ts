@@ -1,8 +1,9 @@
+// hooks/useExamContract.ts
 import { useEffect, useState } from "react";
 import { ethers } from "ethers";
-import { ExamABI, examContractAddress } from "../abi/ExamABI";
+import { ExamABI } from "../abi/ExamABI";
 
-export function useExamContract() {
+export function useExamContract(contractAddress?: string) {
   const [contract, setContract] = useState<ethers.Contract | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [account, setAccount] = useState<string | null>(null);
@@ -33,11 +34,14 @@ export function useExamContract() {
       setProvider(provider);
 
       const signer = await provider.getSigner();
-      const instance = new ethers.Contract(
-        examContractAddress,
-        ExamABI,
-        signer
-      );
+
+      if (!contractAddress) {
+        setError("No contract address provided");
+        setContract(null);
+        return;
+      }
+
+      const instance = new ethers.Contract(contractAddress, ExamABI, signer);
       setContract(instance);
       setError(null);
     } catch (err) {
@@ -76,7 +80,7 @@ export function useExamContract() {
           disconnect();
         } else {
           setAccount(accounts[0]);
-          connect(); // Reconnect with new account
+          connect();
         }
       });
     }
@@ -86,7 +90,7 @@ export function useExamContract() {
         window.ethereum.removeListener("accountsChanged", disconnect);
       }
     };
-  }, []);
+  }, [contractAddress]); // Re-run if contractAddress changes
 
   return {
     contract,

@@ -14,6 +14,7 @@ export default function CourseList() {
   }>({});
   const [loadingEnrollId, setLoadingEnrollId] = useState<number | null>(null);
 
+  // Updated fetchCourses function in CourseList.tsx
   const fetchCourses = async () => {
     if (!contract) return;
 
@@ -27,6 +28,7 @@ export default function CourseList() {
       }
 
       const results = await Promise.all(coursePromises);
+      console.log("Raw course data:", results);
 
       const formatted = results
         .map((course: any, index: number) => ({
@@ -40,8 +42,10 @@ export default function CourseList() {
           ).toLocaleDateString(),
           examCount: Number(course.examCount),
         }))
-        .filter((course) => course.lecturer !== ethers.ZeroAddress);
+        // Only filter out courses with empty title or description if needed
+        .filter((course) => course.title && course.description);
 
+      console.log("Formatted courses:", formatted);
       setCourses(formatted);
 
       // Fetch enrollment status for each course for current user
@@ -146,20 +150,33 @@ export default function CourseList() {
 
               {/* Only show the enroll button if user is NOT a lecturer */}
               {isLecturer === false && (
-                <button
-                  onClick={() => handleEnroll(course.courseId)}
-                  className="mt-4 w-full bg-purple-600 text-white py-2 rounded hover:bg-purple-700 transition disabled:opacity-50"
-                  disabled={
-                    enrolledStatus[course.courseId] ||
-                    loadingEnrollId === course.courseId
-                  }
-                >
-                  {loadingEnrollId === course.courseId
-                    ? "Enrolling..."
-                    : enrolledStatus[course.courseId]
-                    ? "Already Enrolled"
-                    : "Enroll in this Course"}
-                </button>
+                <>
+                  {courses.filter((course) => !enrolledStatus[course.courseId])
+                    .length === 0 ? (
+                    <p className="text-gray-600">
+                      You are enrolled in all available courses.
+                    </p>
+                  ) : (
+                    <ul className="grid md:grid-cols-2 gap-4">
+                      {courses
+                        .filter((course) => !enrolledStatus[course.courseId])
+                        .map((course) => (
+                          <li key={course.courseId} className="...">
+                            {/* Course details */}
+                            <button
+                              onClick={() => handleEnroll(course.courseId)}
+                              className="..."
+                              disabled={loadingEnrollId === course.courseId}
+                            >
+                              {loadingEnrollId === course.courseId
+                                ? "Enrolling..."
+                                : "Enroll in this Course"}
+                            </button>
+                          </li>
+                        ))}
+                    </ul>
+                  )}
+                </>
               )}
             </li>
           ))}

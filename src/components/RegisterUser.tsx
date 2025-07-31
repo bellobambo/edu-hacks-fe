@@ -51,30 +51,65 @@ export default function RegisterUser({
       return;
     }
 
+    // Validate form based on user type
+    if (!form.name.trim()) {
+      setTxError("Name is required");
+      return;
+    }
+
+    if (!form.isLecturer && !form.matricNumber.trim()) {
+      setTxError("Matric Number is required for students");
+      return;
+    }
+
+    if (!form.isLecturer && !form.mainCourse.trim()) {
+      setTxError("Main Course is required for students");
+      return;
+    }
+
+    if (form.isLecturer && form.matricNumber.trim()) {
+      setTxError("Lecturers should not have a matric number");
+      return;
+    }
+
+    if (form.isLecturer && form.mainCourse.trim()) {
+      setTxError("Lecturers should not have a main course");
+      return;
+    }
+
     setLoading(true);
     try {
+      console.log("Registering with:", {
+        name: form.name,
+        matricNumber: form.isLecturer ? "" : form.matricNumber,
+        isLecturer: form.isLecturer,
+        mainCourse: form.isLecturer ? "" : form.mainCourse,
+      });
+
       const tx = await contract.registerUser(
         form.name,
-        form.matricNumber,
+        form.isLecturer ? "" : form.matricNumber,
         form.isLecturer,
-        form.mainCourse
+        form.isLecturer ? "" : form.mainCourse
       );
+
       await tx.wait();
       alert("User registered successfully");
-      // Reset form after successful registration
       setForm({
         name: "",
         matricNumber: "",
         isLecturer: false,
         mainCourse: "",
       });
-      // Call the success callback
-      if (onRegistrationSuccess) {
-        onRegistrationSuccess();
-      }
+      if (onRegistrationSuccess) onRegistrationSuccess();
     } catch (err: any) {
       console.error("Registration error:", err);
-      setTxError(err.reason || err.message || "Error registering user");
+      setTxError(
+        err.reason ||
+          err.data?.message ||
+          err.message ||
+          "Error registering user. Please check your inputs and try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -107,24 +142,25 @@ export default function RegisterUser({
       </select>
 
       {!form.isLecturer && (
-        <input
-          name="matricNumber"
-          placeholder="Matric Number"
-          value={form.matricNumber}
-          onChange={handleChange}
-          className="border p-1 w-full"
-          required={!form.isLecturer}
-        />
+        <>
+          <input
+            name="matricNumber"
+            placeholder="Matric Number"
+            value={form.matricNumber}
+            onChange={handleChange}
+            className="border p-1 w-full"
+            required={!form.isLecturer}
+          />
+          <input
+            name="mainCourse"
+            placeholder="Main Course"
+            value={form.mainCourse}
+            onChange={handleChange}
+            className="border p-1 w-full"
+            required={!form.isLecturer}
+          />
+        </>
       )}
-
-      <input
-        name="mainCourse"
-        placeholder="Main Course"
-        value={form.mainCourse}
-        onChange={handleChange}
-        className="border p-1 w-full"
-        required
-      />
 
       <button
         type="submit"

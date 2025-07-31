@@ -106,9 +106,7 @@ export default function ViewProfile({
         </div>
       )}
 
-      <div>
-        <CourseList />
-      </div>
+      <CourseList />
     </div>
   );
 }
