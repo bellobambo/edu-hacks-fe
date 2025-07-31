@@ -1,45 +1,50 @@
-import "./App.css";
-import RegisterUser from "./components/RegisterUser";
-import ViewProfile from "./components/ViewProfile";
 import { useEffect, useState } from "react";
-import { useCourseContract } from "./hooks/useCourseContract";
+import { ethers } from "ethers";
+import { Routes, Route, Link, useParams } from "react-router-dom";
+import ExamList from "./components/ExamList";
+import ExamPage from "./components/ExamPage";
+import Profile from "./components/Profile";
+import CreateCourse from "./components/CreateCourse";
+import CourseList from "./components/CourseList";
+import CreateExamWithAI from "./components/CreateExam";
+import AllExams from "./components/AllExams";
 
 function App() {
-  const { error, account, disconnect, connect, contract } = useCourseContract();
-  const [isRegistered, setIsRegistered] = useState<boolean | null>(null);
+  const [account, setAccount] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleRegistrationSuccess = () => {
-    setIsRegistered(true);
-  };
-
-  const handleNotRegistered = () => {
-    setIsRegistered(false);
+  const connect = async () => {
+    try {
+      if (!window.ethereum) {
+        setError("MetaMask not detected");
+        return;
+      }
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const accounts = await provider.send("eth_requestAccounts", []);
+      setAccount(accounts[0]);
+      setError(null);
+    } catch (err: any) {
+      setError(err.message || "Failed to connect");
+    }
   };
 
   const handleSignOut = () => {
-    disconnect();
-    setIsRegistered(null);
+    setAccount(null);
+    setError(null);
   };
 
-  // Check registration status on wallet connection
   useEffect(() => {
-    const checkRegistrationStatus = async () => {
-      if (contract && account) {
-        try {
-          const profile = await contract.getUserProfile(account);
-          const registered =
-            profile.walletAddress !==
-            "0x0000000000000000000000000000000000000000";
-          setIsRegistered(registered);
-        } catch (err) {
-          console.error("Error checking registration:", err);
-          setIsRegistered(false);
+    const autoConnect = async () => {
+      if (window.ethereum) {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const accounts = await provider.listAccounts();
+        if (accounts.length > 0) {
+          setAccount(accounts[0].address);
         }
       }
     };
-
-    checkRegistrationStatus();
-  }, [contract, account]);
+    autoConnect();
+  }, []);
 
   if (!account) {
     return (
@@ -67,16 +72,35 @@ function App() {
           Disconnect
         </button>
       </div>
+      <p className="text-gray-700">Connected account: {account}</p>
 
-      {isRegistered === true && (
-        <ViewProfile onNotRegistered={handleNotRegistered} account={account} />
-      )}
+      <nav className="space-x-4 mt-4">
+        <Link to="/profile" className="text-blue-600 hover:underline">
+          Profile
+        </Link>
+        <Link to="/course-list" className="text-blue-600 hover:underline">
+          Courses
+        </Link>
+      </nav>
 
-      {isRegistered === false && (
-        <RegisterUser onRegistrationSuccess={handleRegistrationSuccess} />
-      )}
+      <Routes>
+        <Route path="/course/:courseId" element={<ExamListWrapper />} />
+        <Route path="/all-exams" element={<AllExams />} />
+
+        <Route path="/exams/:examId" element={<ExamPage />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/create-course" element={<CreateCourse />} />
+        <Route path="/course-list" element={<CourseList />} />
+        <Route path="/create-exam" element={<CreateExamWithAI />} />
+      </Routes>
     </div>
   );
+}
+
+// Wrapper component to extract route params
+function ExamListWrapper() {
+  const { courseId } = useParams();
+  return <ExamList courseId={Number(courseId)} />;
 }
 
 export default App;
