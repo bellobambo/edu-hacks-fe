@@ -79,16 +79,22 @@ export default function ExamList({ courseId }: ExamListProps) {
   if (!exams.length) return <p>No exams found for this course.</p>;
 
   return (
-    <div className="mt-8">
-      <h3 className="text-xl font-semibold mb-3">Course Exams</h3>
-      <ul className="space-y-2">
+    <div className="mt-8 px-4 sm:px-0">
+      <h3 className="text-lg sm:text-xl font-semibold mb-4 text-[#B49286]">
+        Course Exams
+      </h3>
+      <ul className="space-y-3">
         {exams.map((exam) => (
-          <li key={exam.examId} className="border p-3 rounded hover:shadow-md">
+          <li
+            key={exam.examId}
+            className="border border-[#B49286]/20 bg-[#744253]/80 p-4 rounded-lg hover:shadow-lg transition-shadow"
+          >
             <a
-              className="text-blue-600 hover:underline"
               href={`/exams/${exam.examId}`}
+              className="block text-[#B49286] hover:underline text-sm sm:text-base"
             >
-              {exam.examTitle} ({exam.duration} mins)
+              {exam.examTitle}{" "}
+              <span className="text-[#B49286]/70">({exam.duration} mins)</span>
             </a>
           </li>
         ))}

@@ -91,29 +91,31 @@ const AllExams = () => {
   }
 
   return (
-    <div className="p-6 bg-[#744253] rounded-lg shadow-md border border-[#B49286]/20">
-      <h2 className="text-2xl font-bold mb-6 text-[#B49286]">All Exams</h2>
+    <div className="p-4 sm:p-6 bg-[#744253] rounded-lg shadow-md border border-[#B49286]/20">
+      <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-[#B49286]">
+        All Exams
+      </h2>
 
       {exams.length === 0 ? (
-        <p className="text-[#B49286]/80">No exams found</p>
+        <p className="text-[#B49286]/80 text-sm sm:text-base">No exams found</p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {exams.map((exam) => (
             <div
               key={exam.examId}
               className="border border-[#B49286]/20 p-4 rounded-lg shadow hover:shadow-md transition-shadow bg-[#744253]/90"
             >
-              <h3 className="font-bold text-lg mb-2 text-[#B49286]">
+              <h3 className="font-semibold text-lg sm:text-xl mb-2 text-[#B49286]">
                 {exam.examTitle}
               </h3>
-              <div className="space-y-1 text-[#B49286]/90">
+              <div className="space-y-1 text-[#B49286]/90 text-sm sm:text-base">
                 <p>Duration: {exam.duration} seconds</p>
                 <p>Course ID: {exam.courseId}</p>
                 <p>Lecturer: {exam.lecturerName}</p>
               </div>
               <Link
                 to={`/exams/${exam.examId}`}
-                className="mt-3 inline-block bg-[#B49286] hover:bg-[#B49286]/90 text-[#744253] px-3 py-1 rounded transition-colors shadow"
+                className="mt-3 inline-block bg-[#B49286] hover:bg-[#B49286]/90 text-[#744253] px-4 py-2 rounded transition-colors shadow text-sm sm:text-base"
               >
                 View Exam
               </Link>

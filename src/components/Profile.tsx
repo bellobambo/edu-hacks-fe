@@ -94,9 +94,11 @@ export default function Profile() {
 
   if (profile && profile.name) {
     return (
-      <main className="max-w-xl mx-auto p-6 bg-[#744253] rounded-lg shadow-md border border-[#B49286]/20">
-        <h1 className="text-2xl font-bold mb-4 text-[#B49286]">Your Profile</h1>
-        <div className="space-y-3 text-[#B49286]">
+      <main className="w-[95%] sm:max-w-xl mx-auto p-4 sm:p-6 bg-[#744253] rounded-lg shadow-md border border-[#B49286]/20">
+        <h1 className="text-xl sm:text-2xl font-bold mb-4 text-[#B49286]">
+          Your Profile
+        </h1>
+        <div className="space-y-3 text-[#B49286] text-sm sm:text-base">
           <p>
             <strong className="font-medium">Name:</strong> {profile.name}
           </p>
@@ -116,7 +118,7 @@ export default function Profile() {
 
         <a
           href="/create-course"
-          className="inline-block mt-6 bg-[#744253] hover:bg-[#744253]/90 text-[#B49286] px-4 py-2 rounded transition-colors shadow border border-[#B49286]/20"
+          className="inline-block mt-6 bg-[#744253] hover:bg-[#744253]/90 text-[#B49286] px-4 py-2 rounded transition-colors shadow border border-[#B49286]/20 text-sm sm:text-base"
         >
           Create Course
         </a>
@@ -125,10 +127,12 @@ export default function Profile() {
   }
 
   return (
-    <main className="max-w-xl mx-auto p-6 bg-[#744253] rounded-lg shadow-md border border-[#B49286]/20">
-      <h1 className="text-2xl font-bold mb-4 text-[#B49286]">Register User</h1>
+    <main className="w-[95%] sm:max-w-xl mx-auto p-4 sm:p-6 bg-[#744253] rounded-lg shadow-md border border-[#B49286]/20">
+      <h1 className="text-xl sm:text-2xl font-bold mb-4 text-[#B49286]">
+        Register User
+      </h1>
 
-      <div className="space-y-3">
+      <div className="space-y-3 text-sm sm:text-base">
         <input
           type="text"
           placeholder="Full Name"

@@ -43,16 +43,16 @@ export default function WalletInfo() {
   if (loading) return <div className="p-2 text-sm">Loading wallet...</div>;
 
   return (
-    <div className="bg-gray-100 rounded-lg p-3 flex flex-col sm:flex-row sm:items-center gap-2 text-sm">
-      <div className="flex items-center">
-        <span className="font-medium">Wallet:</span>
-        <span className="ml-1 font-mono text-gray-700 truncate max-w-[120px] sm:max-w-[180px]">
+    <div className="bg-gray-100 rounded-lg p-3 flex flex-col sm:flex-row sm:items-center gap-2 text-sm max-w-full">
+      <div className="flex items-center w-full sm:w-auto justify-between sm:justify-start">
+        <span className="font-medium mr-1">Wallet:</span>
+        <span className="font-mono text-gray-700 truncate max-w-[100%] sm:max-w-[180px]">
           {walletAddress}
         </span>
       </div>
-      <div className="flex items-center">
-        <span className="font-medium">Balance:</span>
-        <span className="ml-1 font-mono text-gray-700">{balance} ETH</span>
+      <div className="flex items-center w-full sm:w-auto justify-between sm:justify-start">
+        <span className="font-medium mr-1">Balance:</span>
+        <span className="font-mono text-gray-700">{balance} ETH</span>
       </div>
     </div>
   );

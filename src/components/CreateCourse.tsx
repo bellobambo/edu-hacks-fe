@@ -25,8 +25,10 @@ export default function CreateCourse() {
   };
 
   return (
-    <main className="max-w-xl mx-auto p-6 bg-[#744253] rounded-lg shadow-md border border-[#B49286]/20">
-      <h1 className="text-2xl font-bold mb-4 text-[#B49286]">Create Course</h1>
+    <main className="w-full max-w-xl mx-auto p-4 sm:p-6 bg-[#744253] rounded-lg shadow-md border border-[#B49286]/20">
+      <h1 className="text-xl sm:text-2xl font-bold mb-4 text-[#B49286]">
+        Create Course
+      </h1>
 
       <div className="space-y-4">
         <input
@@ -34,30 +36,32 @@ export default function CreateCourse() {
           placeholder="Course Title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="w-full p-3 rounded border border-[#B49286]/30 bg-[#744253]/90 text-[#B49286] placeholder-[#B49286]/60 focus:outline-none focus:ring-1 focus:ring-[#B49286]"
+          className="w-full p-3 rounded border border-[#B49286]/30 bg-[#744253]/90 text-[#B49286] placeholder-[#B49286]/60 focus:outline-none focus:ring-1 focus:ring-[#B49286] text-sm sm:text-base"
         />
 
         <textarea
           placeholder="Course Description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="w-full p-3 rounded border border-[#B49286]/30 bg-[#744253]/90 text-[#B49286] placeholder-[#B49286]/60 focus:outline-none focus:ring-1 focus:ring-[#B49286] min-h-[120px]"
+          className="w-full p-3 rounded border border-[#B49286]/30 bg-[#744253]/90 text-[#B49286] placeholder-[#B49286]/60 focus:outline-none focus:ring-1 focus:ring-[#B49286] min-h-[120px] text-sm sm:text-base"
         />
 
         <button
           disabled={loading || !title || !description}
           onClick={createCourse}
-          className="w-full bg-[#B49286] hover:bg-[#B49286]/90 text-[#744253] px-4 py-3 rounded-lg transition-colors shadow disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+          className="w-full bg-[#B49286] hover:bg-[#B49286]/90 text-[#744253] px-4 py-3 rounded-lg transition-colors shadow disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm sm:text-base"
         >
           {loading ? "Creating..." : "Create Course"}
         </button>
 
-        {message && <p className="mt-3 text-[#B49286]">{message}</p>}
+        {message && (
+          <p className="mt-3 text-sm sm:text-base text-[#B49286]">{message}</p>
+        )}
 
         <div className="pt-4 border-t border-[#B49286]/20">
           <a
             href="/course-list"
-            className="inline-block text-[#B49286] hover:text-[#B49286]/90 hover:underline transition-colors"
+            className="inline-block text-[#B49286] hover:text-[#B49286]/90 hover:underline transition-colors text-sm sm:text-base"
           >
             View Courses
           </a>

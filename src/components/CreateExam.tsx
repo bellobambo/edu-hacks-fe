@@ -78,36 +78,41 @@ function UploadForm({
 
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
-        <label className="block font-medium text-[#B49286]">
-          Upload a `.txt`, `.pdf`, or `.docx` file
-        </label>
-        <input
-          type="file"
-          onChange={handleFileChange}
-          accept=".txt,.pdf,.docx"
-          className="w-full border border-[#B49286]/30 rounded-lg p-3 bg-[#744253]/10 focus:ring-2 focus:ring-[#B49286]/50 focus:border-[#B49286]/50 text-[#071013]"
-        />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <div className="space-y-2">
+          <label className="block font-medium text-[#B49286]">
+            Upload a `.txt`, `.pdf`, or `.docx` file
+          </label>
+          <input
+            type="file"
+            onChange={handleFileChange}
+            accept=".txt,.pdf,.docx"
+            className="w-full sm:w-auto border border-[#B49286]/30 rounded-lg p-3 bg-[#744253]/10 focus:ring-2 focus:ring-[#B49286]/50 focus:border-[#B49286]/50 text-[#071013]"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="block font-medium text-[#B49286]">
+            Number of Questions
+          </label>
+          <input
+            type="number"
+            min="1"
+            max="50"
+            value={questionCount}
+            onChange={(e) => setQuestionCount(Number(e.target.value))}
+            className="w-full sm:w-auto border border-[#B49286]/30 rounded-lg p-3 bg-[#744253]/10 focus:ring-2 focus:ring-[#B49286]/50 focus:border-[#B49286]/50 text-[#071013]"
+          />
+        </div>
       </div>
-      <div className="space-y-2">
-        <label className="block font-medium text-[#B49286]">
-          Number of Questions
-        </label>
-        <input
-          type="number"
-          min="1"
-          max="50"
-          value={questionCount}
-          onChange={(e) => setQuestionCount(Number(e.target.value))}
-          className="w-full border border-[#B49286]/30 rounded-lg p-3 bg-[#744253]/10 focus:ring-2 focus:ring-[#B49286]/50 focus:border-[#B49286]/50 text-[#071013]"
-        />
-      </div>
+
       {error && <p className="text-red-400">{error}</p>}
+
       <div>
         <button
           onClick={handleSubmit}
           disabled={loading || !uploadedFile}
-          className={`bg-[#744253] text-[#B49286] px-6 py-3 rounded-lg hover:bg-[#744253]/90 transition-colors shadow-md ${
+          className={`w-full sm:w-auto bg-[#744253] text-[#B49286] px-6 py-3 rounded-lg hover:bg-[#744253]/90 transition-colors shadow-md ${
             loading || !uploadedFile ? "opacity-70 cursor-not-allowed" : ""
           }`}
         >
@@ -140,8 +145,9 @@ function UploadForm({
           )}
         </button>
       </div>
+
       {result && (
-        <div className="mt-6 p-4 bg-[#744253]/20 rounded-lg border border-[#B49286]/20">
+        <div className="mt-6 p-4 bg-[#744253]/20 rounded-lg border border-[#B49286]/20 overflow-auto">
           <p className="font-medium text-[#B49286]">
             Generated Questions Preview:
           </p>
@@ -391,7 +397,7 @@ export default function CreateExamWithAI() {
   }
 
   return (
-    <main className="max-w-3xl mx-auto p-6 bg-[#744253] rounded-lg shadow-md border border-[#B49286]/20">
+    <main className="max-w-6xl mx-auto p-4 sm:p-6 bg-[#744253] rounded-lg shadow-md border border-[#B49286]/20">
       <h1 className="text-2xl font-bold mb-6 text-[#B49286]">Create Exam</h1>
 
       {/* Exam Creation Form */}

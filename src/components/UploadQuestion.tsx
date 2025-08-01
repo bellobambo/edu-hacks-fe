@@ -67,12 +67,13 @@ export default function UploadForm() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto mt-12 bg-white shadow-md rounded-xl p-6 space-y-6">
-      <h2 className="text-2xl font-bold text-gray-800">
+    <div className="w-[95%] max-w-2xl mx-auto mt-8 sm:mt-12 bg-white shadow-md rounded-xl p-4 sm:p-6 space-y-6">
+      <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
         Generate Exam Questions
       </h2>
+
       <div className="space-y-2">
-        <label className="block font-medium text-gray-700">
+        <label className="block text-sm sm:text-base font-medium text-gray-700">
           Upload a `.txt`, `.pdf`, or `.docx` file
         </label>
         <input
@@ -82,8 +83,9 @@ export default function UploadForm() {
           className="w-full border rounded-md p-2"
         />
       </div>
+
       <div className="space-y-2">
-        <label className="block font-medium text-gray-700">
+        <label className="block text-sm sm:text-base font-medium text-gray-700">
           Number of Questions
         </label>
         <input
@@ -95,18 +97,21 @@ export default function UploadForm() {
           className="w-full border rounded-md p-2"
         />
       </div>
-      {error && <p className="text-red-600">{error}</p>}
+
+      {error && <p className="text-sm text-red-600">{error}</p>}
+
       <div className="mt-4">
         <button
           onClick={handleSubmit}
           disabled={loading || !uploadedFile}
-          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
+          className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
         >
           {loading ? "Generating..." : "Generate Questions"}
         </button>
       </div>
+
       {result && (
-        <div className="mt-6 whitespace-pre-wrap text-gray-800 bg-gray-50 p-4 rounded-md border max-h-[500px] overflow-y-auto">
+        <div className="mt-6 whitespace-pre-wrap text-gray-800 bg-gray-50 p-4 rounded-md border max-h-[500px] overflow-y-auto text-sm sm:text-base">
           {result}
         </div>
       )}

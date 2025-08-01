@@ -111,33 +111,40 @@ export default function ExamPage() {
   if (loading) return <p>Loading...</p>;
 
   return (
-    <main className="max-w-3xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-4">Exam #{examId}</h1>
+    <main className="max-w-3xl mx-auto px-4 sm:px-6 py-6">
+      <h1 className="text-xl sm:text-2xl font-bold mb-4 text-[#B49286]">
+        Exam #{examId}
+      </h1>
 
       {submittedScore !== null ? (
-        <div className="mb-4">
+        <div className="mb-6 bg-green-100 border border-green-300 rounded-lg p-4">
           <p className="font-semibold text-green-700">
             Your score: {submittedScore}
           </p>
-          <p className="text-sm text-gray-600">Wallet: {walletAddress}</p>
+          <p className="text-sm text-gray-700 break-all">
+            Wallet: {walletAddress}
+          </p>
         </div>
       ) : questions.length > 0 ? (
         <>
           {questions.map((q, i) => (
-            <div key={i} className="mb-6">
-              <p className="font-semibold">
+            <div
+              key={i}
+              className="mb-6 bg-[#744253]/70 p-4 rounded-lg shadow-sm"
+            >
+              <p className="font-medium text-[#B49286] mb-2">
                 {i + 1}. {q.questionText}
               </p>
-              <ul>
+              <ul className="space-y-2">
                 {q.options.map((opt, idx) => (
                   <li key={idx}>
-                    <label className="cursor-pointer">
+                    <label className="inline-flex items-center cursor-pointer text-white">
                       <input
                         type="radio"
                         name={`question-${i}`}
                         checked={answers[i] === idx}
                         onChange={() => handleAnswer(i, idx)}
-                        className="mr-2"
+                        className="mr-2 accent-[#B49286]"
                       />
                       {opt}
                     </label>
@@ -150,16 +157,22 @@ export default function ExamPage() {
           <button
             onClick={submitAnswers}
             disabled={loading}
-            className="bg-purple-600 text-white px-4 py-2 rounded disabled:opacity-50"
+            className="bg-[#B49286] hover:bg-[#B49286]/90 text-[#744253] px-5 py-2 rounded-lg transition disabled:opacity-50"
           >
-            Submit Answers
+            {loading ? "Submitting..." : "Submit Answers"}
           </button>
         </>
       ) : (
-        <p>No questions found or exam already submitted.</p>
+        <p className="text-sm text-gray-500">
+          No questions found or exam already submitted.
+        </p>
       )}
 
-      {message && <p className="mt-3 text-red-600">{message}</p>}
+      {message && (
+        <p className="mt-4 text-sm text-red-500 bg-red-100 p-2 rounded">
+          {message}
+        </p>
+      )}
     </main>
   );
 }

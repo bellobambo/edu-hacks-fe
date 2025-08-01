@@ -68,12 +68,14 @@ function App() {
 
   if (!account) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#B49286] p-6">
-        <h1 className="text-3xl font-bold text-[#744253] mb-6">Proof</h1>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#B49286] p-4 sm:p-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-[#744253] mb-4 sm:mb-6">
+          Proof
+        </h1>
         <button
           onClick={connect}
           disabled={isConnecting}
-          className={`bg-[#744253] hover:bg-[#744253]/90 text-white px-6 py-3 rounded-lg transition-colors shadow-md flex items-center justify-center ${
+          className={`w-full sm:w-auto bg-[#744253] hover:bg-[#744253]/90 text-white px-6 py-3 rounded-lg transition-colors shadow-md flex items-center justify-center ${
             isConnecting ? "opacity-75 cursor-not-allowed" : ""
           }`}
         >
@@ -105,17 +107,22 @@ function App() {
             "Connect Wallet"
           )}
         </button>
-        {error && <p className="mt-4 text-red-600">{error}</p>}
+        {error && (
+          <p className="mt-4 text-red-600 text-sm text-center">{error}</p>
+        )}
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#B49286] p-6">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-8 p-4 bg-[#744253] rounded-lg shadow-md border border-[#B49286]/20">
-          <h1 className="text-2xl font-bold text-[#B49286]">Proof</h1>
-          <div className="flex items-center space-x-4">
+    <div className="min-h-screen bg-[#B49286] p-4 sm:p-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 sm:mb-8 p-4 bg-[#744253] rounded-lg shadow-md border border-[#B49286]/20 space-y-4 sm:space-y-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-[#B49286]">
+            Proof
+          </h1>
+
+          <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-2 sm:space-y-0">
             <div
               className="flex items-center bg-[#B49286]/10 hover:bg-[#B49286]/20 rounded-full px-3 py-1 transition-colors group cursor-pointer"
               onClick={() => {
@@ -123,8 +130,10 @@ function App() {
                 alert("Address copied to clipboard!");
               }}
             >
-              <span className="text-[#B49286] text-sm mr-1">Connected:</span>
-              <span className="font-mono text-[#B49286] text-sm">
+              <span className="text-[#B49286] text-xs sm:text-sm mr-1">
+                Connected:
+              </span>
+              <span className="font-mono text-[#B49286] text-xs sm:text-sm">
                 {account.substring(0, 6)}...
                 {account.substring(account.length - 4)}
               </span>
@@ -133,41 +142,41 @@ function App() {
               </span>
             </div>
 
-            <div className="bg-[#B49286]/10 px-3 py-1 rounded-full text-[#B49286] font-medium">
+            <div className="bg-[#B49286]/10 px-3 py-1 rounded-full text-[#B49286] font-medium text-xs sm:text-sm text-center">
               {balance} ETH
             </div>
 
             <button
               onClick={handleSignOut}
-              className="bg-[#071013] hover:bg-[#071013]/90 text-white px-4 py-2 rounded transition-colors shadow"
+              className="bg-[#071013] hover:bg-[#071013]/90 text-white px-4 py-2 rounded transition-colors shadow cursor-pointer text-xs sm:text-sm"
             >
               Disconnect
             </button>
           </div>
         </div>
 
-        <nav className="flex space-x-4 mb-8 p-4 bg-[#744253] rounded-lg shadow-md border border-[#B49286]/20">
+        <nav className="flex flex-wrap gap-2 sm:gap-4 mb-6 sm:mb-8 p-4 bg-[#744253] rounded-lg shadow-md border border-[#B49286]/20">
           <Link
             to="/profile"
-            className="text-[#B49286] hover:text-[#B49286]/90 hover:bg-[#B49286]/20 px-4 py-2 rounded-full transition-colors font-medium flex items-center"
+            className="text-[#B49286] hover:text-[#B49286]/90 hover:bg-[#B49286]/20 px-4 py-2 rounded-full transition-colors font-medium text-sm flex items-center"
           >
             <span className="mr-2">👤</span> Profile
           </Link>
           <Link
             to="/course-list"
-            className="text-[#B49286] hover:text-[#B49286]/90 hover:bg-[#B49286]/20 px-4 py-2 rounded-full transition-colors font-medium flex items-center"
+            className="text-[#B49286] hover:text-[#B49286]/90 hover:bg-[#B49286]/20 px-4 py-2 rounded-full transition-colors font-medium text-sm flex items-center"
           >
             <span className="mr-2">📚</span> Courses
           </Link>
           <Link
             to="/all-exams"
-            className="text-[#B49286] hover:text-[#B49286]/90 hover:bg-[#B49286]/20 px-4 py-2 rounded-full transition-colors font-medium flex items-center"
+            className="text-[#B49286] hover:text-[#B49286]/90 hover:bg-[#B49286]/20 px-4 py-2 rounded-full transition-colors font-medium text-sm flex items-center"
           >
             <span className="mr-2">📝</span> All Exams
           </Link>
         </nav>
 
-        <div className="bg-[#744253] rounded-lg shadow-lg p-6 border border-[#B49286]/10">
+        <div className="bg-[#744253] rounded-lg shadow-lg p-4 sm:p-6 border border-[#B49286]/10 overflow-x-auto">
           <Routes>
             <Route path="/course/:courseId" element={<ExamListWrapper />} />
             <Route path="/all-exams" element={<AllExams />} />
