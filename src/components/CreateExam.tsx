@@ -54,7 +54,7 @@ function UploadForm({
     formData.append("questionCount", questionCount.toString());
 
     try {
-      const res = await fetch("http://localhost:3000/api/upload", {
+      const res = await fetch("https://eduhack-three.vercel.app/api/upload", {
         method: "POST",
         body: formData,
       });
