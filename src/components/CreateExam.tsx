@@ -208,14 +208,14 @@ export default function CreateExamWithAI() {
     fetchCourses();
   }, []);
 
-  const addGeneratedQuestion = (question: any) => {
-    setQuestionText(question.text);
-    setOptions(question.options);
-    setCorrectOption(question.correctOption);
-    setMessage(
-      "Generated question loaded. Review and click 'Add Question' to save."
-    );
-  };
+  // const addGeneratedQuestion = (question: any) => {
+  //   setQuestionText(question.text);
+  //   setOptions(question.options);
+  //   setCorrectOption(question.correctOption);
+  //   setMessage(
+  //     "Generated question loaded. Review and click 'Add Question' to save."
+  //   );
+  // };
 
   // Update your createExam function to include course validation
   const createExam = async () => {

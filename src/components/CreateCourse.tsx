@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { getLMSContract } from "../utils/contracts";
-import WalletInfo from "./WalletInfo";
 
 export default function CreateCourse() {
   const [title, setTitle] = useState("");

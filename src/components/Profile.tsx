@@ -74,21 +74,21 @@ export default function Profile() {
     setLoading(false);
   };
 
-  const deleteUser = async () => {
-    setLoading(true);
-    setMessage("");
-    try {
-      const contract = await getLMSContract();
-      if (!contract) throw new Error("Contract not found");
-      const tx = await contract.deleteUser();
-      await tx.wait();
-      setMessage("User deleted successfully!");
-      setProfile(null); // Clear the profile from state
-    } catch (error: any) {
-      setMessage(error.message || "Deletion failed");
-    }
-    setLoading(false);
-  };
+  // const deleteUser = async () => {
+  //   setLoading(true);
+  //   setMessage("");
+  //   try {
+  //     const contract = await getLMSContract();
+  //     if (!contract) throw new Error("Contract not found");
+  //     const tx = await contract.deleteUser();
+  //     await tx.wait();
+  //     setMessage("User deleted successfully!");
+  //     setProfile(null); // Clear the profile from state
+  //   } catch (error: any) {
+  //     setMessage(error.message || "Deletion failed");
+  //   }
+  //   setLoading(false);
+  // };
 
   if (loading) return <p>Loading...</p>;
 

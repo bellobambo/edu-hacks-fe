@@ -13,7 +13,7 @@ function App() {
   const [account, setAccount] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [balance, setBalance] = useState<string>("0");
-  const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null);
+  const [_, setProvider] = useState<ethers.BrowserProvider | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
 
   const connect = async () => {

@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import { getLMSContract } from "../utils/contracts";
-import WalletInfo from "./WalletInfo";
+import Enroll from "./Enroll";
 
 type Course = {
-  courseId: bigint; // Changed to bigint
+  courseId: bigint;
   title: string;
   description: string;
   lecturer: string;
   lecturerName: string;
-  creationDate: bigint; // Changed to bigint
+  creationDate: bigint;
 };
 
 export default function CourseList() {
@@ -23,11 +23,12 @@ export default function CourseList() {
         if (!contract) return;
 
         const count = await contract.courseCount();
+
         const courseArray = [];
 
         for (let i = 0; i < Number(count); i++) {
-          // Convert BigInt to Number for loop
           const course = await contract.courses(i);
+
           courseArray.push({
             courseId: course.courseId,
             title: course.title,
@@ -47,36 +48,42 @@ export default function CourseList() {
   }, []);
 
   if (loading) return <p>Loading courses...</p>;
-  if (!courses.length) return <p>No courses available.</p>;
 
   return (
     <div className="container mx-auto p-4">
       <h2 className="text-2xl font-bold mb-6 text-[#B49286]">
         Available Courses
       </h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {courses.map((course) => (
-          <div
-            key={Number(course.courseId)}
-            className="border border-[#B49286]/20 rounded-lg p-4 hover:shadow-lg transition-shadow bg-[#744253] text-[#B49286]"
-          >
-            <h3 className="font-bold text-lg mb-2">{course.title}</h3>
-            <p className="mb-3 opacity-90">{course.description}</p>
-            <div className="text-sm space-y-1">
-              <p>
-                <span className="font-medium">Lecturer:</span>{" "}
-                {course.lecturerName}
-              </p>
-              <p className="opacity-80 truncate">{course.lecturer}</p>
-              <p className="opacity-70">
-                Created:{" "}
-                {new Date(
-                  Number(course.creationDate) * 1000
-                ).toLocaleDateString()}
-              </p>
+
+      <Enroll courses={courses} />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+        {courses.length > 0 ? (
+          courses.map((course) => (
+            <div
+              key={Number(course.courseId)}
+              className="border border-[#B49286]/20 rounded-lg p-4 hover:shadow-lg transition-shadow bg-[#744253] text-[#B49286]"
+            >
+              <h3 className="font-bold text-lg mb-2">{course.title}</h3>
+              <p className="mb-3 opacity-90">{course.description}</p>
+              <div className="text-sm space-y-1">
+                <p>
+                  <span className="font-medium">Lecturer:</span>{" "}
+                  {course.lecturerName}
+                </p>
+                <p className="opacity-80 truncate">{course.lecturer}</p>
+                <p className="opacity-70">
+                  Created:{" "}
+                  {new Date(
+                    Number(course.creationDate) * 1000
+                  ).toLocaleDateString()}
+                </p>
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        ) : (
+          <p>No courses available.</p>
+        )}
       </div>
 
       <a
