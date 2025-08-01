@@ -79,18 +79,18 @@ function UploadForm({
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <label className="block font-medium text-gray-700">
+        <label className="block font-medium text-[#B49286]">
           Upload a `.txt`, `.pdf`, or `.docx` file
         </label>
         <input
           type="file"
           onChange={handleFileChange}
           accept=".txt,.pdf,.docx"
-          className="w-full border rounded-md p-2"
+          className="w-full border border-[#B49286]/30 rounded-lg p-3 bg-[#744253]/10 focus:ring-2 focus:ring-[#B49286]/50 focus:border-[#B49286]/50 text-[#071013]"
         />
       </div>
       <div className="space-y-2">
-        <label className="block font-medium text-gray-700">
+        <label className="block font-medium text-[#B49286]">
           Number of Questions
         </label>
         <input
@@ -99,23 +99,55 @@ function UploadForm({
           max="50"
           value={questionCount}
           onChange={(e) => setQuestionCount(Number(e.target.value))}
-          className="w-full border rounded-md p-2"
+          className="w-full border border-[#B49286]/30 rounded-lg p-3 bg-[#744253]/10 focus:ring-2 focus:ring-[#B49286]/50 focus:border-[#B49286]/50 text-[#071013]"
         />
       </div>
-      {error && <p className="text-red-600">{error}</p>}
+      {error && <p className="text-red-400">{error}</p>}
       <div>
         <button
           onClick={handleSubmit}
           disabled={loading || !uploadedFile}
-          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
+          className={`bg-[#744253] text-[#B49286] px-6 py-3 rounded-lg hover:bg-[#744253]/90 transition-colors shadow-md ${
+            loading || !uploadedFile ? "opacity-70 cursor-not-allowed" : ""
+          }`}
         >
-          {loading ? "Generating..." : "Generate Questions"}
+          {loading ? (
+            <span className="flex items-center justify-center">
+              <svg
+                className="animate-spin -ml-1 mr-3 h-5 w-5 text-[#B49286]"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              Generating...
+            </span>
+          ) : (
+            "Generate Questions"
+          )}
         </button>
       </div>
       {result && (
-        <div className="mt-4 p-3 bg-gray-100 rounded-md">
-          <p className="font-medium">Generated Questions Preview:</p>
-          <div className="whitespace-pre-wrap mt-2">{result}</div>
+        <div className="mt-6 p-4 bg-[#744253]/20 rounded-lg border border-[#B49286]/20">
+          <p className="font-medium text-[#B49286]">
+            Generated Questions Preview:
+          </p>
+          <div className="mt-3 p-3 bg-[#744253]/10 rounded-md text-[#071013] whitespace-pre-wrap">
+            {result}
+          </div>
         </div>
       )}
     </div>
@@ -359,25 +391,25 @@ export default function CreateExamWithAI() {
   }
 
   return (
-    <main className="max-w-3xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">Create Exam</h1>
+    <main className="max-w-3xl mx-auto p-6 bg-[#744253] rounded-lg shadow-md border border-[#B49286]/20">
+      <h1 className="text-2xl font-bold mb-6 text-[#B49286]">Create Exam</h1>
 
-      {/* Exam Creation Form (only shown when no examId) */}
+      {/* Exam Creation Form */}
       {!examId ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div>
-            <label className="block mb-1">Select Course</label>
+            <label className="block mb-1 text-[#B49286]">Select Course</label>
             {coursesLoading ? (
               <select
                 disabled
-                className="border p-2 w-full rounded bg-gray-100"
+                className="border border-[#B49286]/30 p-2 w-full rounded bg-[#744253]/90 text-[#B49286]"
               >
                 <option>Loading courses...</option>
               </select>
             ) : courses.length === 0 ? (
               <select
                 disabled
-                className="border p-2 w-full rounded bg-gray-100"
+                className="border border-[#B49286]/30 p-2 w-full rounded bg-[#744253]/90 text-[#B49286]"
               >
                 <option>No courses available</option>
               </select>
@@ -385,13 +417,16 @@ export default function CreateExamWithAI() {
               <select
                 value={courseId}
                 onChange={(e) => setCourseId(e.target.value)}
-                className="border p-2 w-full rounded"
+                className="border border-[#B49286]/30 p-2 w-full rounded bg-[#744253]/90 text-[#B49286] focus:outline-none focus:ring-1 focus:ring-[#B49286]"
               >
-                <option value="">Select a course</option>
+                <option value="" className="text-[#B49286]/60">
+                  Select a course
+                </option>
                 {courses.map((course) => (
                   <option
                     key={Number(course.courseId)}
                     value={Number(course.courseId)}
+                    className="bg-[#744253]"
                   >
                     {course.title} (ID: {Number(course.courseId)})
                   </option>
@@ -400,30 +435,32 @@ export default function CreateExamWithAI() {
             )}
           </div>
           <div>
-            <label className="block mb-1">Exam Title</label>
+            <label className="block mb-1 text-[#B49286]">Exam Title</label>
             <input
               type="text"
               placeholder="Exam Title"
               value={examTitle}
               onChange={(e) => setExamTitle(e.target.value)}
-              className="border p-2 w-full rounded"
+              className="border border-[#B49286]/30 p-2 w-full rounded bg-[#744253]/90 text-[#B49286] placeholder-[#B49286]/60 focus:outline-none focus:ring-1 focus:ring-[#B49286]"
             />
           </div>
           <div>
-            <label className="block mb-1">Duration (minutes)</label>
+            <label className="block mb-1 text-[#B49286]">
+              Duration (minutes)
+            </label>
             <input
               type="number"
               placeholder="Duration"
               value={duration}
               onChange={(e) => setDuration(e.target.value)}
-              className="border p-2 w-full rounded"
+              className="border border-[#B49286]/30 p-2 w-full rounded bg-[#744253]/90 text-[#B49286] placeholder-[#B49286]/60 focus:outline-none focus:ring-1 focus:ring-[#B49286]"
             />
           </div>
           <div className="md:col-span-2">
             <button
               disabled={loading || !courseId || !examTitle || !duration}
               onClick={createExam}
-              className="bg-purple-700 text-white px-6 py-2 rounded disabled:opacity-50"
+              className="w-full bg-[#B49286] hover:bg-[#B49286]/90 text-[#744253] px-6 py-3 rounded-lg transition-colors shadow disabled:opacity-50 disabled:cursor-not-allowed font-medium"
             >
               {loading ? "Creating Exam..." : "Create Exam"}
             </button>
@@ -432,13 +469,13 @@ export default function CreateExamWithAI() {
       ) : (
         <div className="space-y-6">
           {/* Exam Created Success Section */}
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="bg-[#B49286]/10 border border-[#B49286]/20 rounded-lg p-4">
             <div className="flex justify-between items-center">
               <div>
-                <h2 className="text-xl font-semibold text-green-800">
+                <h2 className="text-xl font-semibold text-[#B49286]">
                   Exam Created Successfully!
                 </h2>
-                <p className="text-green-600">
+                <p className="text-[#B49286]/90">
                   Now add questions to your exam: {examTitle}
                 </p>
               </div>
@@ -448,7 +485,7 @@ export default function CreateExamWithAI() {
                   setMessage("");
                   setGeneratedQuestions([]);
                 }}
-                className="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300"
+                className="bg-[#B49286]/20 hover:bg-[#B49286]/30 text-[#B49286] px-4 py-2 rounded transition-colors"
               >
                 Back to Exam Creation
               </button>
@@ -456,15 +493,17 @@ export default function CreateExamWithAI() {
           </div>
 
           {/* Question Management Section */}
-          <div className="bg-white p-6 rounded-lg shadow border">
+          <div className="bg-[#744253]/90 p-6 rounded-lg shadow border border-[#B49286]/20">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold">Add Questions</h2>
+              <h2 className="text-xl font-semibold text-[#B49286]">
+                Add Questions
+              </h2>
               <button
                 onClick={() => setShowUploadForm(!showUploadForm)}
-                className={`px-4 py-2 rounded-md ${
+                className={`px-4 py-2 rounded-md transition-colors ${
                   showUploadForm
-                    ? "bg-gray-200 text-gray-800"
-                    : "bg-blue-600 text-white"
+                    ? "bg-[#B49286]/20 text-[#B49286]"
+                    : "bg-[#B49286] text-[#744253]"
                 }`}
               >
                 {showUploadForm ? "Hide AI Generator" : "Generate with AI"}
@@ -473,22 +512,22 @@ export default function CreateExamWithAI() {
 
             {/* AI Question Generator */}
             {showUploadForm && (
-              <div className="mb-6 p-4 border rounded-lg bg-gray-50">
+              <div className="mb-6 p-4 border border-[#B49286]/20 rounded-lg bg-[#744253]/80">
                 <UploadForm onQuestionsGenerated={handleQuestionsGenerated} />
               </div>
             )}
 
             {/* Generated Questions List */}
             {generatedQuestions.length > 0 && (
-              <div className="mb-6 p-4 border rounded-lg bg-gray-50">
+              <div className="mb-6 p-4 border border-[#B49286]/20 rounded-lg bg-[#744253]/80">
                 <div className="flex justify-between items-center mb-3">
-                  <h3 className="font-semibold">
+                  <h3 className="font-semibold text-[#B49286]">
                     Generated Questions ({generatedQuestions.length})
                   </h3>
                   <div className="flex space-x-2">
                     <button
                       onClick={toggleSelectAll}
-                      className="text-sm bg-blue-100 hover:bg-blue-200 px-3 py-1 rounded"
+                      className="text-sm bg-[#B49286]/20 hover:bg-[#B49286]/30 text-[#B49286] px-3 py-1 rounded transition-colors"
                     >
                       {selectedQuestions.length === generatedQuestions.length
                         ? "Deselect All"
@@ -497,7 +536,7 @@ export default function CreateExamWithAI() {
                     <button
                       onClick={addSelectedQuestions}
                       disabled={loading || selectedQuestions.length === 0}
-                      className="text-sm bg-green-600 text-white hover:bg-green-700 px-3 py-1 rounded disabled:opacity-50"
+                      className="text-sm bg-[#B49286] hover:bg-[#B49286]/90 text-[#744253] px-3 py-1 rounded transition-colors shadow disabled:opacity-50"
                     >
                       {loading ? "Uploading..." : "Upload All Selected"}
                     </button>
@@ -507,10 +546,10 @@ export default function CreateExamWithAI() {
                   {generatedQuestions.map((q, i) => (
                     <div
                       key={i}
-                      className={`p-3 border rounded ${
+                      className={`p-3 border rounded transition-colors cursor-pointer ${
                         selectedQuestions.includes(i)
-                          ? "bg-blue-50 border-blue-300"
-                          : "hover:bg-gray-100"
+                          ? "bg-[#B49286]/20 border-[#B49286]/30"
+                          : "hover:bg-[#B49286]/10 border-[#B49286]/20"
                       }`}
                       onClick={() => toggleQuestionSelection(i)}
                     >
@@ -519,10 +558,10 @@ export default function CreateExamWithAI() {
                           type="checkbox"
                           checked={selectedQuestions.includes(i)}
                           onChange={() => toggleQuestionSelection(i)}
-                          className="mt-1 mr-2"
+                          className="mt-1 mr-2 accent-[#B49286]"
                           onClick={(e) => e.stopPropagation()}
                         />
-                        <div className="flex-1">
+                        <div className="flex-1 text-[#B49286]">
                           <p className="font-medium">{q.text}</p>
                           <div className="mt-2 space-y-1">
                             {q.options.map((opt: string, j: number) => (
@@ -530,7 +569,7 @@ export default function CreateExamWithAI() {
                                 key={j}
                                 className={`pl-2 ${
                                   j === q.correctOption
-                                    ? "border-l-2 border-green-500 font-medium"
+                                    ? "border-l-2 border-[#B49286] font-medium"
                                     : ""
                                 }`}
                               >
@@ -547,21 +586,25 @@ export default function CreateExamWithAI() {
             )}
 
             {/* Manual Question Entry */}
-            <div className="p-4 border rounded-lg bg-gray-50">
-              <h3 className="font-semibold mb-3">Manual Question Entry</h3>
+            <div className="p-4 border border-[#B49286]/20 rounded-lg bg-[#744253]/80">
+              <h3 className="font-semibold mb-3 text-[#B49286]">
+                Manual Question Entry
+              </h3>
               <div className="mb-3">
-                <label className="block mb-1">Question Text</label>
+                <label className="block mb-1 text-[#B49286]">
+                  Question Text
+                </label>
                 <input
                   type="text"
                   placeholder="Enter question text"
                   value={questionText}
                   onChange={(e) => setQuestionText(e.target.value)}
-                  className="border p-2 w-full rounded"
+                  className="border border-[#B49286]/30 p-2 w-full rounded bg-[#744253]/90 text-[#B49286] placeholder-[#B49286]/60 focus:outline-none focus:ring-1 focus:ring-[#B49286]"
                 />
               </div>
 
               <div className="mb-3">
-                <label className="block mb-1">Options</label>
+                <label className="block mb-1 text-[#B49286]">Options</label>
                 {options.map((option, index) => (
                   <div key={index} className="flex items-center mb-2">
                     <input
@@ -569,7 +612,7 @@ export default function CreateExamWithAI() {
                       name="correctOption"
                       checked={correctOption === index}
                       onChange={() => setCorrectOption(index)}
-                      className="mr-2"
+                      className="mr-2 accent-[#B49286]"
                     />
                     <input
                       type="text"
@@ -578,7 +621,7 @@ export default function CreateExamWithAI() {
                       onChange={(e) =>
                         handleOptionChange(index, e.target.value)
                       }
-                      className="border p-2 flex-grow rounded"
+                      className="border border-[#B49286]/30 p-2 flex-grow rounded bg-[#744253]/90 text-[#B49286] placeholder-[#B49286]/60 focus:outline-none focus:ring-1 focus:ring-[#B49286]"
                     />
                   </div>
                 ))}
@@ -587,7 +630,7 @@ export default function CreateExamWithAI() {
               <button
                 disabled={loading || !questionText || options.some((o) => !o)}
                 onClick={addQuestion}
-                className="bg-purple-700 text-white px-6 py-2 rounded disabled:opacity-50"
+                className="w-full bg-[#B49286] hover:bg-[#B49286]/90 text-[#744253] px-6 py-3 rounded-lg transition-colors shadow disabled:opacity-50 disabled:cursor-not-allowed font-medium"
               >
                 {loading ? "Adding Question..." : "Add Question"}
               </button>
@@ -601,15 +644,22 @@ export default function CreateExamWithAI() {
         <div
           className={`mt-4 p-3 rounded ${
             message.includes("success") || message.includes("Generated")
-              ? "bg-green-100 text-green-800"
-              : "bg-red-100 text-red-800"
+              ? "bg-[#B49286]/20 text-[#B49286] border border-[#B49286]/20"
+              : "bg-[#744253]/90 text-[#B49286] border border-[#B49286]/20"
           }`}
         >
           {message}
         </div>
       )}
 
-      <a href="/all-exams">All Exams</a>
+      <div className="pt-4 border-t border-[#B49286]/20">
+        <a
+          href="/all-exams"
+          className="inline-block text-[#B49286] hover:text-[#B49286]/90 hover:underline transition-colors"
+        >
+          All Exams
+        </a>
+      </div>
 
       <>{courseId && <ExamList courseId={Number(courseId)} />}</>
     </main>

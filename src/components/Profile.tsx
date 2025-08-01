@@ -94,87 +94,93 @@ export default function Profile() {
 
   if (profile && profile.name) {
     return (
-      <main className="max-w-xl mx-auto p-6">
-        <h1 className="text-2xl font-bold mb-4">Your Profile</h1>
-        <p>
-          <strong>Name:</strong> {profile.name}
-        </p>
-        <p>
-          <strong>Matric Number:</strong> {profile.matricNumber}
-        </p>
-        <p>
-          <strong>Lecturer:</strong> {profile.isLecturer ? "Yes" : "No"}
-        </p>
-        <p>
-          <strong>Main Course:</strong> {profile.mainCourse}
-        </p>
+      <main className="max-w-xl mx-auto p-6 bg-[#744253] rounded-lg shadow-md border border-[#B49286]/20">
+        <h1 className="text-2xl font-bold mb-4 text-[#B49286]">Your Profile</h1>
+        <div className="space-y-3 text-[#B49286]">
+          <p>
+            <strong className="font-medium">Name:</strong> {profile.name}
+          </p>
+          <p>
+            <strong className="font-medium">Matric Number:</strong>{" "}
+            {profile.matricNumber}
+          </p>
+          <p>
+            <strong className="font-medium">Lecturer:</strong>{" "}
+            {profile.isLecturer ? "Yes" : "No"}
+          </p>
+          <p>
+            <strong className="font-medium">Main Course:</strong>{" "}
+            {profile.mainCourse}
+          </p>
+        </div>
 
-        <a href="/create-course">Create Course</a>
-        {/* <button
-          onClick={deleteUser}
-          className="bg-red-600 text-white px-4 py-2 rounded mt-4"
+        <a
+          href="/create-course"
+          className="inline-block mt-6 bg-[#744253] hover:bg-[#744253]/90 text-[#B49286] px-4 py-2 rounded transition-colors shadow border border-[#B49286]/20"
         >
-          Delete My Profile
-        </button> */}
+          Create Course
+        </a>
       </main>
     );
   }
 
   return (
-    <main className="max-w-xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-4">Register User</h1>
-      <input
-        type="text"
-        placeholder="Full Name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        className="border p-2 w-full mb-3 rounded"
-        required
-      />
+    <main className="max-w-xl mx-auto p-6 bg-[#744253] rounded-lg shadow-md border border-[#B49286]/20">
+      <h1 className="text-2xl font-bold mb-4 text-[#B49286]">Register User</h1>
 
-      {/* Only show matric field if NOT a lecturer */}
-      {!isLecturer && (
+      <div className="space-y-3">
         <input
           type="text"
-          placeholder="Matric Number"
-          value={matric}
-          onChange={(e) => setMatric(e.target.value)}
-          className="border p-2 w-full mb-3 rounded"
-          required={!isLecturer} // Only required for students
+          placeholder="Full Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="border border-[#B49286]/30 bg-[#744253]/90 text-[#B49286] placeholder-[#B49286]/60 p-2 w-full rounded focus:outline-none focus:ring-1 focus:ring-[#B49286]"
+          required
         />
-      )}
 
-      <label className="flex items-center mb-3">
+        {!isLecturer && (
+          <input
+            type="text"
+            placeholder="Matric Number"
+            value={matric}
+            onChange={(e) => setMatric(e.target.value)}
+            className="border border-[#B49286]/30 bg-[#744253]/90 text-[#B49286] placeholder-[#B49286]/60 p-2 w-full rounded focus:outline-none focus:ring-1 focus:ring-[#B49286]"
+            required={!isLecturer}
+          />
+        )}
+
+        <label className="flex items-center text-[#B49286]">
+          <input
+            type="checkbox"
+            checked={isLecturer}
+            onChange={() => {
+              setIsLecturer(!isLecturer);
+              if (!isLecturer) setMatric("");
+            }}
+            className="mr-2 border-[#B49286] text-[#744253] focus:ring-[#B49286]"
+          />
+          I am a lecturer
+        </label>
+
         <input
-          type="checkbox"
-          checked={isLecturer}
-          onChange={() => {
-            setIsLecturer(!isLecturer);
-            // Clear matric number when switching to lecturer
-            if (!isLecturer) setMatric("");
-          }}
-          className="mr-2"
+          type="text"
+          placeholder={isLecturer ? "Course You Teach" : "Main Course"}
+          value={mainCourse}
+          onChange={(e) => setMainCourse(e.target.value)}
+          className="border border-[#B49286]/30 bg-[#744253]/90 text-[#B49286] placeholder-[#B49286]/60 p-2 w-full rounded focus:outline-none focus:ring-1 focus:ring-[#B49286]"
+          required
         />
-        I am a lecturer
-      </label>
 
-      <input
-        type="text"
-        placeholder={isLecturer ? "Course You Teach" : "Main Course"}
-        value={mainCourse}
-        onChange={(e) => setMainCourse(e.target.value)}
-        className="border p-2 w-full mb-3 rounded"
-        required
-      />
+        <button
+          onClick={registerUser}
+          disabled={loading || !name || !mainCourse || (!isLecturer && !matric)}
+          className="w-full bg-[#B49286] hover:bg-[#B49286]/90 text-[#744253] px-4 py-2 rounded transition-colors shadow disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {loading ? "Registering..." : "Register"}
+        </button>
+      </div>
 
-      <button
-        onClick={registerUser}
-        disabled={loading || !name || !mainCourse || (!isLecturer && !matric)}
-        className="bg-indigo-600 text-white px-4 py-2 rounded disabled:opacity-50"
-      >
-        {loading ? "Registering..." : "Register"}
-      </button>
-      {message && <p className="mt-3">{message}</p>}
+      {message && <p className="mt-3 text-[#B49286]">{message}</p>}
     </main>
   );
 }

@@ -51,23 +51,24 @@ export default function CourseList() {
 
   return (
     <div className="container mx-auto p-4">
-      <WalletInfo />
-      <h2 className="text-2xl font-bold mb-6">Available Courses</h2>
+      <h2 className="text-2xl font-bold mb-6 text-[#B49286]">
+        Available Courses
+      </h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {courses.map((course) => (
           <div
-            key={Number(course.courseId)} // Convert BigInt to Number for key
-            className="border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-shadow"
+            key={Number(course.courseId)}
+            className="border border-[#B49286]/20 rounded-lg p-4 hover:shadow-lg transition-shadow bg-[#744253] text-[#B49286]"
           >
             <h3 className="font-bold text-lg mb-2">{course.title}</h3>
-            <p className="text-gray-600 mb-3">{course.description}</p>
+            <p className="mb-3 opacity-90">{course.description}</p>
             <div className="text-sm space-y-1">
               <p>
                 <span className="font-medium">Lecturer:</span>{" "}
                 {course.lecturerName}
               </p>
-              <p className="text-gray-500 truncate">{course.lecturer}</p>
-              <p className="text-gray-400">
+              <p className="opacity-80 truncate">{course.lecturer}</p>
+              <p className="opacity-70">
                 Created:{" "}
                 {new Date(
                   Number(course.creationDate) * 1000
@@ -78,7 +79,12 @@ export default function CourseList() {
         ))}
       </div>
 
-      <a href="/create-exam">Create Exam</a>
+      <a
+        href="/create-exam"
+        className="inline-block mt-6 bg-[#744253] hover:bg-[#744253]/90 text-[#B49286] px-4 py-2 rounded transition-colors shadow border border-[#B49286]/20"
+      >
+        Create Exam
+      </a>
     </div>
   );
 }
