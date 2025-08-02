@@ -116,12 +116,14 @@ export default function Profile() {
           </p>
         </div>
 
-        <a
-          href="/create-course"
-          className="inline-block mt-6 bg-[#744253] hover:bg-[#744253]/90 text-[#B49286] px-4 py-2 rounded transition-colors shadow border border-[#B49286]/20 text-sm sm:text-base"
-        >
-          Create Course
-        </a>
+        {profile.isLecturer && (
+          <a
+            href="/create-course"
+            className="inline-block mt-6 bg-[#744253] hover:bg-[#744253]/90 text-[#B49286] px-4 py-2 rounded transition-colors shadow border border-[#B49286]/20 text-sm sm:text-base"
+          >
+            Create Course
+          </a>
+        )}
       </main>
     );
   }
@@ -142,17 +144,6 @@ export default function Profile() {
           required
         />
 
-        {!isLecturer && (
-          <input
-            type="text"
-            placeholder="Matric Number"
-            value={matric}
-            onChange={(e) => setMatric(e.target.value)}
-            className="border border-[#B49286]/30 bg-[#744253]/90 text-[#B49286] placeholder-[#B49286]/60 p-2 w-full rounded focus:outline-none focus:ring-1 focus:ring-[#B49286]"
-            required={!isLecturer}
-          />
-        )}
-
         <label className="flex items-center text-[#B49286]">
           <input
             type="checkbox"
@@ -165,6 +156,17 @@ export default function Profile() {
           />
           I am a lecturer
         </label>
+
+        {!isLecturer && (
+          <input
+            type="text"
+            placeholder="Matric Number"
+            value={matric}
+            onChange={(e) => setMatric(e.target.value)}
+            className="border border-[#B49286]/30 bg-[#744253]/90 text-[#B49286] placeholder-[#B49286]/60 p-2 w-full rounded focus:outline-none focus:ring-1 focus:ring-[#B49286]"
+            required={!isLecturer}
+          />
+        )}
 
         <input
           type="text"

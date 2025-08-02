@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getLMSContract } from "../utils/contracts";
 import Enroll from "./Enroll";
+import { ethers } from "ethers";
 
 type Course = {
   courseId: bigint;
@@ -11,24 +12,46 @@ type Course = {
   creationDate: bigint;
 };
 
+type UserProfile = {
+  walletAddress: string;
+  name: string;
+  matricNumber: string;
+  isLecturer: boolean;
+  mainCourse: string;
+};
+
 export default function CourseList() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(false);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {
-    const fetchCourses = async () => {
+    const fetchCoursesAndProfile = async () => {
       setLoading(true);
       try {
         const contract = await getLMSContract();
         if (!contract) return;
 
-        const count = await contract.courseCount();
+        // Fetch user profile
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const address = await signer.getAddress();
+        const user = await contract.getUserProfile(address);
 
-        const courseArray = [];
+        setProfile({
+          walletAddress: user[0],
+          name: user[1],
+          matricNumber: user[2],
+          isLecturer: user[3],
+          mainCourse: user[4],
+        });
+
+        // Fetch courses
+        const count = await contract.courseCount();
+        const courseArray: Course[] = [];
 
         for (let i = 0; i < Number(count); i++) {
           const course = await contract.courses(i);
-
           courseArray.push({
             courseId: course.courseId,
             title: course.title,
@@ -38,13 +61,15 @@ export default function CourseList() {
             creationDate: course.creationDate,
           });
         }
+
         setCourses(courseArray);
       } catch (error) {
-        console.error("Error fetching courses:", error);
+        console.error("Error fetching data:", error);
       }
       setLoading(false);
     };
-    fetchCourses();
+
+    fetchCoursesAndProfile();
   }, []);
 
   if (loading) return <p>Loading courses...</p>;
@@ -92,12 +117,14 @@ export default function CourseList() {
         )}
       </div>
 
-      <a
-        href="/create-exam"
-        className="inline-block mt-6 bg-[#744253] hover:bg-[#744253]/90 text-[#B49286] px-4 py-2 rounded transition-colors shadow border border-[#B49286]/20 text-sm sm:text-base"
-      >
-        Create Exam
-      </a>
+      {profile?.isLecturer && (
+        <a
+          href="/create-exam"
+          className="inline-block mt-6 bg-[#744253] hover:bg-[#744253]/90 text-[#B49286] px-4 py-2 rounded transition-colors shadow border border-[#B49286]/20 text-sm sm:text-base"
+        >
+          Create Exam
+        </a>
+      )}
     </div>
   );
 }
