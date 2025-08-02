@@ -109,7 +109,13 @@ const AllExams = () => {
                 {exam.examTitle}
               </h3>
               <div className="space-y-1 text-[#B49286]/90 text-sm sm:text-base">
-                <p>Duration: {exam.duration} seconds</p>
+                <p>
+                  Duration:{" "}
+                  {exam.duration && Number(exam.duration) >= 60
+                    ? `${Math.floor(Number(exam.duration) / 60)} minutes`
+                    : `${Number(exam.duration || 0)} seconds`}
+                </p>
+
                 <p>Course ID: {exam.courseId}</p>
                 <p>Lecturer: {exam.lecturerName}</p>
               </div>
