@@ -72,7 +72,7 @@ function App() {
         <h1 className="text-2xl sm:text-3xl font-bold text-[#744253] mb-4 sm:mb-6">
           Proof
         </h1>
-        {/* <button
+        <button
           onClick={connect}
           disabled={isConnecting}
           className={`w-full sm:w-auto bg-[#744253] hover:bg-[#744253]/90 text-white px-6 py-3 rounded-lg transition-colors shadow-md flex items-center justify-center ${
@@ -109,7 +109,7 @@ function App() {
         </button>
         {error && (
           <p className="mt-4 text-red-600 text-sm text-center">{error}</p>
-        )} */}
+        )}
       </div>
     );
   }
