@@ -70,3 +70,6 @@ export default tseslint.config([
 
 preview live code
 npm run preview
+
+smart contract github repo :
+https://github.com/bellobambo/eduhacks_smart-contract

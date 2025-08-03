@@ -83,6 +83,8 @@ function UploadForm({
           <label className="block font-medium text-[#B49286]">
             Upload a `.txt`, `.pdf`, or `.docx` file
           </label>
+          <br />
+          <small className="text-[#B49286]">preferably .docx files</small>
           <input
             type="file"
             onChange={handleFileChange}
