@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ethers } from "ethers";
 import { Routes, Route, Link, useParams } from "react-router-dom";
+import toast, { Toaster } from "react-hot-toast";
 import ExamList from "./components/ExamList";
 import ExamPage from "./components/ExamPage";
 import Profile from "./components/Profile";
@@ -15,6 +16,23 @@ function App() {
   const [balance, setBalance] = useState<string>("0");
   const [_, setProvider] = useState<ethers.BrowserProvider | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isCorrectNetwork, setIsCorrectNetwork] = useState<boolean | null>(
+    null
+  );
+
+  const EDUCHAIN_TESTNET_ID = 656476; // EduChain Testnet chainId
+
+  const checkNetwork = async (provider: ethers.BrowserProvider) => {
+    try {
+      const network = await provider.getNetwork();
+      setIsCorrectNetwork(network.chainId === BigInt(EDUCHAIN_TESTNET_ID));
+      return network.chainId === BigInt(EDUCHAIN_TESTNET_ID);
+    } catch (err) {
+      console.error("Error checking network:", err);
+      setIsCorrectNetwork(false);
+      return false;
+    }
+  };
 
   const connect = async () => {
     try {
@@ -22,18 +40,87 @@ function App() {
       setError(null);
       if (!window.ethereum) {
         setError("MetaMask not detected");
+        toast.error("MetaMask not detected");
         return;
       }
+
       const newProvider = new ethers.BrowserProvider(window.ethereum);
       setProvider(newProvider);
+
       const accounts = await newProvider.send("eth_requestAccounts", []);
       setAccount(accounts[0]);
       await fetchBalance(newProvider, accounts[0]);
+
+      // Check network but don't force switch
+      const isCorrect = await checkNetwork(newProvider);
+      if (!isCorrect) {
+        toast(
+          <div className="flex items-center">
+            <span>
+              Switch to EduChain Testnet for proper on-chain recording
+            </span>
+            <button
+              onClick={() => switchToEduChain()}
+              className="ml-2 px-2 py-1 bg-[#744253] text-white rounded text-xs"
+            >
+              Switch
+            </button>
+          </div>,
+          { duration: 10000 }
+        );
+      }
+
       setError(null);
     } catch (err: any) {
       setError(err.message || "Failed to connect");
+      toast.error(err.message || "Failed to connect");
     } finally {
       setIsConnecting(false);
+    }
+  };
+
+  const switchToEduChain = async () => {
+    if (!window.ethereum) return;
+
+    try {
+      await window.ethereum.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: `0x${EDUCHAIN_TESTNET_ID.toString(16)}` }],
+      });
+      toast.success("Switched to EduChain Testnet");
+      setIsCorrectNetwork(true);
+    } catch (switchError: any) {
+      // This error code indicates that the chain has not been added to MetaMask
+      if (switchError.code === 4902) {
+        try {
+          await window.ethereum.request({
+            method: "wallet_addEthereumChain",
+            params: [
+              {
+                chainId: `0x${EDUCHAIN_TESTNET_ID.toString(16)}`,
+                chainName: "EduChain Testnet",
+                nativeCurrency: {
+                  name: "EDU",
+                  symbol: "EDU",
+                  decimals: 18,
+                },
+                rpcUrls: ["https://rpc.open-campus-codex.gelato.digital"],
+                blockExplorerUrls: [
+                  "https://edu-chain-testnet.blockscout.com/",
+                ],
+              },
+            ],
+          });
+          toast.success("EduChain Testnet added successfully");
+          setIsCorrectNetwork(true);
+        } catch (addError) {
+          toast.error("Failed to add EduChain Testnet");
+          console.error("Error adding EduChain:", addError);
+        }
+      } else {
+        toast.error("Failed to switch to EduChain Testnet");
+        console.error("Error switching network:", switchError);
+      }
     }
   };
 
@@ -49,6 +136,15 @@ function App() {
     setAccount(null);
     setError(null);
     setBalance("0");
+    setIsCorrectNetwork(null);
+    toast.success("Disconnected successfully");
+  };
+
+  const copyAddress = () => {
+    if (account) {
+      navigator.clipboard.writeText(account);
+      toast.success("Address copied to clipboard!");
+    }
   };
 
   useEffect(() => {
@@ -56,10 +152,12 @@ function App() {
       if (window.ethereum) {
         const newProvider = new ethers.BrowserProvider(window.ethereum);
         setProvider(newProvider);
+
         const accounts = await newProvider.listAccounts();
         if (accounts.length > 0) {
           setAccount(accounts[0].address);
           await fetchBalance(newProvider, accounts[0].address);
+          await checkNetwork(newProvider);
         }
       }
     };
@@ -69,6 +167,16 @@ function App() {
   if (!account) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#B49286] p-4 sm:p-6">
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            style: {
+              background: "#744253",
+              color: "#B49286",
+              border: "1px solid #B49286",
+            },
+          }}
+        />
         <h1 className="text-2xl sm:text-3xl font-bold text-[#744253] mb-4 sm:mb-6">
           Proof
         </h1>
@@ -116,6 +224,31 @@ function App() {
 
   return (
     <div className="min-h-screen bg-[#B49286] p-4 sm:p-6">
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          style: {
+            background: "#744253",
+            color: "#B49286",
+            border: "1px solid #B49286",
+          },
+        }}
+      />
+
+      {/* Network Indicator Banner */}
+      {isCorrectNetwork === false && (
+        <div className="bg-yellow-500 text-white p-2 text-center mb-4">
+          You're not on EduChain Testnet. Switch to ensure proper on-chain
+          recording.
+          <button
+            onClick={switchToEduChain}
+            className="ml-2 px-2 py-1 bg-[#744253] rounded text-sm"
+          >
+            Switch Network
+          </button>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 sm:mb-8 p-4 bg-[#744253] rounded-lg shadow-md border border-[#B49286]/20 space-y-4 sm:space-y-0">
           <h1 className="text-xl sm:text-2xl font-bold text-[#B49286]">
@@ -125,10 +258,7 @@ function App() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-2 sm:space-y-0">
             <div
               className="flex items-center bg-[#B49286]/10 hover:bg-[#B49286]/20 rounded-full px-3 py-1 transition-colors group cursor-pointer"
-              onClick={() => {
-                navigator.clipboard.writeText(account);
-                alert("Address copied to clipboard!");
-              }}
+              onClick={copyAddress}
             >
               <span className="text-[#B49286] text-xs sm:text-sm mr-1">
                 Connected:
@@ -143,7 +273,7 @@ function App() {
             </div>
 
             <div className="bg-[#B49286]/10 px-3 py-1 rounded-full text-[#B49286] font-medium text-xs sm:text-sm text-center">
-              {balance} ETH
+              {balance} {isCorrectNetwork ? "EDU" : "ETH"}
             </div>
 
             <button
@@ -198,7 +328,3 @@ function ExamListWrapper() {
 }
 
 export default App;
-
-// primary: '#744253',
-//       secondary: '#B49286',
-//       dark: '#071013',
