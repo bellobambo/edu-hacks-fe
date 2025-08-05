@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { ethers } from "ethers";
-import { Routes, Route, Link, useParams } from "react-router-dom";
+import {
+  Routes,
+  Route,
+  Link,
+  useParams,
+  useNavigate,
+  useLocation,
+} from "react-router-dom";
 import toast, { Toaster } from "react-hot-toast";
 import ExamList from "./components/ExamList";
 import ExamPage from "./components/ExamPage";
@@ -20,7 +27,10 @@ function App() {
     null
   );
 
-  const EDUCHAIN_TESTNET_ID = 656476; // EduChain Testnet chainId
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const EDUCHAIN_TESTNET_ID = 656476;
 
   const checkNetwork = async (provider: ethers.BrowserProvider) => {
     try {
@@ -71,6 +81,7 @@ function App() {
       }
 
       setError(null);
+      navigate("/profile");
     } catch (err: any) {
       setError(err.message || "Failed to connect");
       toast.error(err.message || "Failed to connect");
@@ -90,7 +101,6 @@ function App() {
       toast.success("Switched to EduChain Testnet");
       setIsCorrectNetwork(true);
     } catch (switchError: any) {
-      // This error code indicates that the chain has not been added to MetaMask
       if (switchError.code === 4902) {
         try {
           await window.ethereum.request({
@@ -145,6 +155,10 @@ function App() {
       navigator.clipboard.writeText(account);
       toast.success("Address copied to clipboard!");
     }
+  };
+
+  const isActive = (path: string) => {
+    return location.pathname === path;
   };
 
   useEffect(() => {
@@ -285,21 +299,40 @@ function App() {
         <nav className="flex flex-wrap gap-2 sm:gap-4 mb-6 sm:mb-8 p-4 bg-[#744253] rounded-lg shadow-md border border-[#B49286]/20">
           <Link
             to="/profile"
-            className="text-[#B49286] hover:text-[#B49286]/90 hover:bg-[#B49286]/20 px-4 py-2 rounded-full transition-colors font-medium text-sm flex items-center"
+            className={`${
+              isActive("/profile") ? "bg-[#B49286]/30" : "hover:bg-[#B49286]/20"
+            } text-[#B49286] px-4 py-2 rounded-full transition-colors font-medium text-sm flex items-center`}
           >
             <span className="mr-2">👤</span> Profile
+            {isActive("/profile") && (
+              <span className="ml-1 w-2 h-2 bg-green-400 rounded-full"></span>
+            )}
           </Link>
           <Link
             to="/course-list"
-            className="text-[#B49286] hover:text-[#B49286]/90 hover:bg-[#B49286]/20 px-4 py-2 rounded-full transition-colors font-medium text-sm flex items-center"
+            className={`${
+              isActive("/course-list")
+                ? "bg-[#B49286]/30"
+                : "hover:bg-[#B49286]/20"
+            } text-[#B49286] px-4 py-2 rounded-full transition-colors font-medium text-sm flex items-center`}
           >
             <span className="mr-2">📚</span> Courses
+            {isActive("/course-list") && (
+              <span className="ml-1 w-2 h-2 bg-green-400 rounded-full"></span>
+            )}
           </Link>
           <Link
             to="/all-exams"
-            className="text-[#B49286] hover:text-[#B49286]/90 hover:bg-[#B49286]/20 px-4 py-2 rounded-full transition-colors font-medium text-sm flex items-center"
+            className={`${
+              isActive("/all-exams")
+                ? "bg-[#B49286]/30"
+                : "hover:bg-[#B49286]/20"
+            } text-[#B49286] px-4 py-2 rounded-full transition-colors font-medium text-sm flex items-center`}
           >
             <span className="mr-2">📝</span> All Exams
+            {isActive("/all-exams") && (
+              <span className="ml-1 w-2 h-2 bg-green-400 rounded-full"></span>
+            )}
           </Link>
         </nav>
 
