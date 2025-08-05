@@ -1,5 +1,5 @@
 export const lmsAddress =
-  "0x94e8ad3B02b1E6C87cb7ecce750d9a8F52fE8307" as `0x${string}`;
+  "0x059666B270586Ef6D9E656e7B119632f8b03d532" as `0x${string}`;
 
 export const LmsABI = [
   {
