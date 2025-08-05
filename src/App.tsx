@@ -12,7 +12,7 @@ import AllExams from "./components/AllExams";
 
 function App() {
   const [account, setAccount] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [__, setError] = useState<string | null>(null);
   const [balance, setBalance] = useState<string>("0");
   const [_, setProvider] = useState<ethers.BrowserProvider | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -215,9 +215,6 @@ function App() {
             "Connect Wallet"
           )}
         </button>
-        {error && (
-          <p className="mt-4 text-red-600 text-sm text-center">{error}</p>
-        )}
       </div>
     );
   }
