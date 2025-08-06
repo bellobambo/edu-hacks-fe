@@ -5,16 +5,17 @@
 It ensures that academic records—such as course participation, exam submissions,
 and results—are transparent, secure, and immutable using smart contracts.
 
---- ## 🚀 Features - ✅ Secure user registration (Students & Lecturers)
-- 📚 On-chain course creation and enrollment -
-- 🧪 Exam creation, submission, and result tracking -
-- 🔐 Immutable academic records -
+## 🚀 Features
+- ✅ Secure user registration (Students & Lecturers)
+- 📚 On-chain course creation and enrollment
+- 🧪 Exam creation, submission, and result tracking
+- 🔐 Immutable academic records
 - 🔎 Trustless verification of learning achievements
 - 🌐 Runs on the **EduChain Testnet** 
 
 
 
-preview live code
+preview live code:
 npm run preview
 
 smart contract github repo :
