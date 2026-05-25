@@ -1,190 +1,130 @@
 import { useEffect, useState } from "react";
-import { useCourseContract } from "../hooks/useCourseContract";
+import { getLMSContract } from "../utils/contracts";
+import Enroll from "./Enroll";
 import { ethers } from "ethers";
-import CreateExam from "./CreateExam";
-import ExamList from "./ExamList";
+
+type Course = {
+  courseId: bigint;
+  title: string;
+  description: string;
+  lecturer: string;
+  lecturerName: string;
+  creationDate: bigint;
+};
+
+type UserProfile = {
+  walletAddress: string;
+  name: string;
+  matricNumber: string;
+  isLecturer: boolean;
+  mainCourse: string;
+};
 
 export default function CourseList() {
-  const { contract, account } = useCourseContract();
-  const [courses, setCourses] = useState<any[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(false);
-  const [isLecturer, setIsLecturer] = useState<boolean | null>(null);
-  const [enrolledStatus, setEnrolledStatus] = useState<{
-    [key: number]: boolean;
-  }>({});
-  const [loadingEnrollId, setLoadingEnrollId] = useState<number | null>(null);
-
-  // Updated fetchCourses function in CourseList.tsx
-  const fetchCourses = async () => {
-    if (!contract) return;
-
-    setLoading(true);
-    try {
-      const totalCourses = await contract.courseCount();
-      const coursePromises = [];
-
-      for (let i = 0; i < totalCourses; i++) {
-        coursePromises.push(contract.courses(i));
-      }
-
-      const results = await Promise.all(coursePromises);
-      console.log("Raw course data:", results);
-
-      const formatted = results
-        .map((course: any, index: number) => ({
-          courseId: index,
-          lecturer: course.lecturer,
-          lecturerName: course.lecturerName,
-          title: course.title,
-          description: course.description,
-          creationDate: new Date(
-            Number(course.creationDate) * 1000
-          ).toLocaleDateString(),
-          examCount: Number(course.examCount),
-        }))
-        // Only filter out courses with empty title or description if needed
-        .filter((course) => course.title && course.description);
-
-      console.log("Formatted courses:", formatted);
-      setCourses(formatted);
-
-      // Fetch enrollment status for each course for current user
-      if (account) {
-        const statuses: { [key: number]: boolean } = {};
-        for (const course of formatted) {
-          try {
-            const enrolled = await contract.isStudentEnrolled(
-              account,
-              course.courseId
-            );
-            statuses[course.courseId] = enrolled;
-          } catch (err) {
-            console.error(
-              `Failed to fetch enrollment status for course ${course.courseId}`,
-              err
-            );
-            statuses[course.courseId] = false;
-          }
-        }
-        setEnrolledStatus(statuses);
-      }
-    } catch (err) {
-      console.error("Error fetching courses:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchUserRole = async () => {
-    if (!contract || !account) return;
-    try {
-      const profile = await contract.getUserProfile(account);
-      setIsLecturer(profile.isLecturer);
-    } catch (err) {
-      console.error("Error fetching user profile:", err);
-    }
-  };
-
-  const handleEnroll = async (courseId: number) => {
-    if (!contract || !account) return;
-    try {
-      setLoadingEnrollId(courseId);
-      const tx = await contract.enrollInCourse(courseId);
-      await tx.wait();
-      alert("✅ Successfully enrolled in course!");
-
-      // Update enrollment status immediately after enrolling
-      setEnrolledStatus((prev) => ({
-        ...prev,
-        [courseId]: true,
-      }));
-    } catch (err) {
-      console.error("Enrollment failed:", err);
-      alert("❌ Failed to enroll in course.");
-    } finally {
-      setLoadingEnrollId(null);
-    }
-  };
+  const [profile, setProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {
-    fetchCourses();
-    fetchUserRole();
-  }, [contract, account]);
+    const fetchCoursesAndProfile = async () => {
+      setLoading(true);
+      try {
+        const contract = await getLMSContract();
+        if (!contract) return;
+
+        // Fetch user profile
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const address = await signer.getAddress();
+        const user = await contract.getUserProfile(address);
+
+        setProfile({
+          walletAddress: user[0],
+          name: user[1],
+          matricNumber: user[2],
+          isLecturer: user[3],
+          mainCourse: user[4],
+        });
+
+        // Fetch courses
+        const count = await contract.courseCount();
+        const courseArray: Course[] = [];
+
+        for (let i = 0; i < Number(count); i++) {
+          const course = await contract.courses(i);
+          courseArray.push({
+            courseId: course.courseId,
+            title: course.title,
+            description: course.description,
+            lecturer: course.lecturer,
+            lecturerName: course.lecturerName,
+            creationDate: course.creationDate,
+          });
+        }
+
+        setCourses(courseArray);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+      setLoading(false);
+    };
+
+    fetchCoursesAndProfile();
+  }, []);
+
+  if (loading) return <p>Loading courses...</p>;
 
   return (
-    <div className="p-6 bg-gray-50 rounded-lg shadow-lg max-w-4xl mx-auto">
-      <h2 className="text-2xl font-bold mb-4 text-purple-700">
-        📚 Available Courses
+    <div className="container mx-auto p-4 sm:p-6">
+      <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-[#B49286]">
+        Available Courses
       </h2>
 
-      {loading ? (
-        <p className="text-gray-600">Loading courses...</p>
-      ) : courses.length === 0 ? (
-        <p className="text-gray-500">No courses available at the moment.</p>
-      ) : (
-        <ul className="grid md:grid-cols-2 gap-4">
-          {courses.map((course) => (
-            <li
-              key={course.courseId}
-              className="bg-white border border-gray-200 p-4 rounded-lg shadow hover:shadow-md transition"
+      <Enroll courses={courses} />
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+        {courses.length > 0 ? (
+          courses.map((course) => (
+            <div
+              key={Number(course.courseId)}
+              className="border border-[#B49286]/20 rounded-lg p-4 hover:shadow-lg transition-shadow bg-[#744253] text-[#B49286]"
             >
-              <h3 className="text-xl font-semibold text-purple-800 mb-1">
-                {course.title || "Untitled Course"}
+              <h3 className="font-bold text-lg sm:text-xl mb-2">
+                {course.title}
               </h3>
-              <p className="text-sm text-gray-700 mb-2">
-                {course.description || "No description provided."}
+              <p className="mb-3 opacity-90 text-sm sm:text-base">
+                {course.description}
               </p>
-              <div className="text-sm text-gray-600 space-y-1">
+              <div className="text-xs sm:text-sm space-y-1">
                 <p>
                   <span className="font-medium">Lecturer:</span>{" "}
-                  {course.lecturerName || "Unknown"}
+                  {course.lecturerName}
                 </p>
-                <p>
-                  <span className="font-medium">Created:</span>{" "}
-                  {course.creationDate}
-                </p>
-                <p>
-                  <span className="font-medium">Exams:</span> {course.examCount}
+                <p className="opacity-80 truncate">{course.lecturer}</p>
+                <p className="opacity-70">
+                  Created:{" "}
+                  {new Date(
+                    Number(course.creationDate) * 1000
+                  ).toLocaleDateString()}
                 </p>
               </div>
+            </div>
+          ))
+        ) : (
+          <p className="text-sm sm:text-base text-[#B49286]/80">
+            No courses available.
+          </p>
+        )}
+      </div>
 
-              {/* Only show the enroll button if user is NOT a lecturer */}
-              {isLecturer === false && (
-                <>
-                  {courses.filter((course) => !enrolledStatus[course.courseId])
-                    .length === 0 ? (
-                    <p className="text-gray-600">
-                      You are enrolled in all available courses.
-                    </p>
-                  ) : (
-                    <ul className="grid md:grid-cols-2 gap-4">
-                      {courses
-                        .filter((course) => !enrolledStatus[course.courseId])
-                        .map((course) => (
-                          <li key={course.courseId} className="...">
-                            {/* Course details */}
-                            <button
-                              onClick={() => handleEnroll(course.courseId)}
-                              className="..."
-                              disabled={loadingEnrollId === course.courseId}
-                            >
-                              {loadingEnrollId === course.courseId
-                                ? "Enrolling..."
-                                : "Enroll in this Course"}
-                            </button>
-                          </li>
-                        ))}
-                    </ul>
-                  )}
-                </>
-              )}
-            </li>
-          ))}
-        </ul>
+      {profile?.isLecturer && (
+        <a
+          href="/create-exam"
+          className="inline-block mt-6 bg-[#744253] hover:bg-[#744253]/90 text-[#B49286] px-4 py-2 rounded transition-colors shadow border border-[#B49286]/20 text-sm sm:text-base"
+        >
+          Create Exam
+        </a>
       )}
-
-      {isLecturer && <CreateExam />}
-      <ExamList />
     </div>
   );
 }

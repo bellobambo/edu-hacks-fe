@@ -1,82 +1,360 @@
-import "./App.css";
-import RegisterUser from "./components/RegisterUser";
-import ViewProfile from "./components/ViewProfile";
 import { useEffect, useState } from "react";
-import { useCourseContract } from "./hooks/useCourseContract";
+import { ethers } from "ethers";
+import {
+  Routes,
+  Route,
+  Link,
+  useParams,
+  useNavigate,
+  useLocation,
+} from "react-router-dom";
+import toast, { Toaster } from "react-hot-toast";
+import ExamList from "./components/ExamList";
+import ExamPage from "./components/ExamPage";
+import Profile from "./components/Profile";
+import CreateCourse from "./components/CreateCourse";
+import CourseList from "./components/CourseList";
+import CreateExamWithAI from "./components/CreateExam";
+import AllExams from "./components/AllExams";
 
 function App() {
-  const { error, account, disconnect, connect, contract } = useCourseContract();
-  const [isRegistered, setIsRegistered] = useState<boolean | null>(null);
+  const [account, setAccount] = useState<string | null>(null);
+  const [__, setError] = useState<string | null>(null);
+  const [balance, setBalance] = useState<string>("0");
+  const [_, setProvider] = useState<ethers.BrowserProvider | null>(null);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [isCorrectNetwork, setIsCorrectNetwork] = useState<boolean | null>(
+    null
+  );
 
-  const handleRegistrationSuccess = () => {
-    setIsRegistered(true);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const EDUCHAIN_TESTNET_ID = 656476;
+
+  const checkNetwork = async (provider: ethers.BrowserProvider) => {
+    try {
+      const network = await provider.getNetwork();
+      setIsCorrectNetwork(network.chainId === BigInt(EDUCHAIN_TESTNET_ID));
+      return network.chainId === BigInt(EDUCHAIN_TESTNET_ID);
+    } catch (err) {
+      console.error("Error checking network:", err);
+      setIsCorrectNetwork(false);
+      return false;
+    }
   };
 
-  const handleNotRegistered = () => {
-    setIsRegistered(false);
+  const connect = async () => {
+    try {
+      setIsConnecting(true);
+      setError(null);
+      if (!window.ethereum) {
+        setError("MetaMask not detected");
+        toast.error("MetaMask not detected");
+        return;
+      }
+
+      const newProvider = new ethers.BrowserProvider(window.ethereum);
+      setProvider(newProvider);
+
+      const accounts = await newProvider.send("eth_requestAccounts", []);
+      setAccount(accounts[0]);
+      await fetchBalance(newProvider, accounts[0]);
+
+      // Check network but don't force switch
+      const isCorrect = await checkNetwork(newProvider);
+      if (!isCorrect) {
+        toast(
+          <div className="flex items-center">
+            <span>
+              Switch to EduChain Testnet for proper on-chain recording
+            </span>
+            <button
+              onClick={() => switchToEduChain()}
+              className="ml-2 px-2 py-1 bg-[#744253] text-white rounded text-xs"
+            >
+              Switch
+            </button>
+          </div>,
+          { duration: 10000 }
+        );
+      }
+
+      setError(null);
+      navigate("/profile");
+    } catch (err: any) {
+      setError(err.message || "Failed to connect");
+      toast.error(err.message || "Failed to connect");
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  const switchToEduChain = async () => {
+    if (!window.ethereum) return;
+
+    try {
+      await window.ethereum.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: `0x${EDUCHAIN_TESTNET_ID.toString(16)}` }],
+      });
+      toast.success("Switched to EduChain Testnet");
+      setIsCorrectNetwork(true);
+    } catch (switchError: any) {
+      if (switchError.code === 4902) {
+        try {
+          await window.ethereum.request({
+            method: "wallet_addEthereumChain",
+            params: [
+              {
+                chainId: `0x${EDUCHAIN_TESTNET_ID.toString(16)}`,
+                chainName: "EduChain Testnet",
+                nativeCurrency: {
+                  name: "EDU",
+                  symbol: "EDU",
+                  decimals: 18,
+                },
+                rpcUrls: ["https://rpc.open-campus-codex.gelato.digital"],
+                blockExplorerUrls: [
+                  "https://edu-chain-testnet.blockscout.com/",
+                ],
+              },
+            ],
+          });
+          toast.success("EduChain Testnet added successfully");
+          setIsCorrectNetwork(true);
+        } catch (addError) {
+          toast.error("Failed to add EduChain Testnet");
+          console.error("Error adding EduChain:", addError);
+        }
+      } else {
+        toast.error("Failed to switch to EduChain Testnet");
+        console.error("Error switching network:", switchError);
+      }
+    }
+  };
+
+  const fetchBalance = async (
+    provider: ethers.BrowserProvider,
+    address: string
+  ) => {
+    const balance = await provider.getBalance(address);
+    setBalance(ethers.formatEther(balance).substring(0, 6)); // Show first 6 decimals
   };
 
   const handleSignOut = () => {
-    disconnect();
-    setIsRegistered(null);
+    setAccount(null);
+    setError(null);
+    setBalance("0");
+    setIsCorrectNetwork(null);
+    toast.success("Disconnected successfully");
   };
 
-  // Check registration status on wallet connection
+  const copyAddress = () => {
+    if (account) {
+      navigator.clipboard.writeText(account);
+      toast.success("Address copied to clipboard!");
+    }
+  };
+
+  const isActive = (path: string) => {
+    return location.pathname === path;
+  };
+
   useEffect(() => {
-    const checkRegistrationStatus = async () => {
-      if (contract && account) {
-        try {
-          const profile = await contract.getUserProfile(account);
-          const registered =
-            profile.walletAddress !==
-            "0x0000000000000000000000000000000000000000";
-          setIsRegistered(registered);
-        } catch (err) {
-          console.error("Error checking registration:", err);
-          setIsRegistered(false);
+    const autoConnect = async () => {
+      if (window.ethereum) {
+        const newProvider = new ethers.BrowserProvider(window.ethereum);
+        setProvider(newProvider);
+
+        const accounts = await newProvider.listAccounts();
+        if (accounts.length > 0) {
+          setAccount(accounts[0].address);
+          await fetchBalance(newProvider, accounts[0].address);
+          await checkNetwork(newProvider);
         }
       }
     };
-
-    checkRegistrationStatus();
-  }, [contract, account]);
+    autoConnect();
+  }, []);
 
   if (!account) {
     return (
-      <div className="p-6 space-y-6">
-        <h1 className="text-xl font-bold">Course Contract UI</h1>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#B49286] p-4 sm:p-6">
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            style: {
+              background: "#744253",
+              color: "#B49286",
+              border: "1px solid #B49286",
+            },
+          }}
+        />
+        <h1 className="text-2xl sm:text-3xl font-bold text-[#744253] mb-4 sm:mb-6">
+          Proof
+        </h1>
         <button
           onClick={connect}
-          className="bg-blue-500 text-white px-4 py-2 rounded"
+          disabled={isConnecting}
+          className={`w-full sm:w-auto bg-[#744253] hover:bg-[#744253]/90 text-white px-6 py-3 rounded-lg transition-colors shadow-md flex items-center justify-center ${
+            isConnecting ? "opacity-75 cursor-not-allowed" : ""
+          }`}
         >
-          Connect Wallet
+          {isConnecting ? (
+            <>
+              <svg
+                className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              Connecting...
+            </>
+          ) : (
+            "Connect Wallet"
+          )}
         </button>
-        {error && <p className="text-red-500">{error}</p>}
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-xl font-bold">Course Contract UI</h1>
-        <button
-          onClick={handleSignOut}
-          className="bg-red-500 text-white px-4 py-2 rounded"
-        >
-          Disconnect
-        </button>
+    <div className="min-h-screen bg-[#B49286] p-4 sm:p-6">
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          style: {
+            background: "#744253",
+            color: "#B49286",
+            border: "1px solid #B49286",
+          },
+        }}
+      />
+
+      {/* Network Indicator Banner */}
+      {isCorrectNetwork === false && (
+        <div className="bg-yellow-500 text-white p-2 text-center mb-4">
+          You're not on EduChain Testnet. Switch to ensure proper on-chain
+          recording.
+          <button
+            onClick={switchToEduChain}
+            className="ml-2 px-2 py-1 bg-[#744253] rounded text-sm"
+          >
+            Switch Network
+          </button>
+        </div>
+      )}
+
+      <div className="max-w-7xl mx-auto">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 sm:mb-8 p-4 bg-[#744253] rounded-lg shadow-md border border-[#B49286]/20 space-y-4 sm:space-y-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-[#B49286]">
+            Proof
+          </h1>
+
+          <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-2 sm:space-y-0">
+            <div
+              className="flex items-center bg-[#B49286]/10 hover:bg-[#B49286]/20 rounded-full px-3 py-1 transition-colors group cursor-pointer"
+              onClick={copyAddress}
+            >
+              <span className="text-[#B49286] text-xs sm:text-sm mr-1">
+                Connected:
+              </span>
+              <span className="font-mono text-[#B49286] text-xs sm:text-sm">
+                {account.substring(0, 6)}...
+                {account.substring(account.length - 4)}
+              </span>
+              <span className="ml-2 text-[#B49286] opacity-70 group-hover:opacity-100 transition-opacity">
+                &#128220;
+              </span>
+            </div>
+
+            <div className="bg-[#B49286]/10 px-3 py-1 rounded-full text-[#B49286] font-medium text-xs sm:text-sm text-center">
+              {balance} {isCorrectNetwork ? "EDU" : "ETH"}
+            </div>
+
+            <button
+              onClick={handleSignOut}
+              className="bg-[#071013] hover:bg-[#071013]/90 text-white px-4 py-2 rounded transition-colors shadow cursor-pointer text-xs sm:text-sm"
+            >
+              Disconnect
+            </button>
+          </div>
+        </div>
+
+        <nav className="flex flex-wrap gap-2 sm:gap-4 mb-6 sm:mb-8 p-4 bg-[#744253] rounded-lg shadow-md border border-[#B49286]/20">
+          <Link
+            to="/profile"
+            className={`${
+              isActive("/profile") ? "bg-[#B49286]/30" : "hover:bg-[#B49286]/20"
+            } text-[#B49286] px-4 py-2 rounded-full transition-colors font-medium text-sm flex items-center`}
+          >
+            <span className="mr-2">👤</span> Profile
+            {isActive("/profile") && (
+              <span className="ml-1 w-2 h-2 bg-green-400 rounded-full"></span>
+            )}
+          </Link>
+          <Link
+            to="/course-list"
+            className={`${
+              isActive("/course-list")
+                ? "bg-[#B49286]/30"
+                : "hover:bg-[#B49286]/20"
+            } text-[#B49286] px-4 py-2 rounded-full transition-colors font-medium text-sm flex items-center`}
+          >
+            <span className="mr-2">📚</span> Courses
+            {isActive("/course-list") && (
+              <span className="ml-1 w-2 h-2 bg-green-400 rounded-full"></span>
+            )}
+          </Link>
+          <Link
+            to="/all-exams"
+            className={`${
+              isActive("/all-exams")
+                ? "bg-[#B49286]/30"
+                : "hover:bg-[#B49286]/20"
+            } text-[#B49286] px-4 py-2 rounded-full transition-colors font-medium text-sm flex items-center`}
+          >
+            <span className="mr-2">📝</span> All Exams
+            {isActive("/all-exams") && (
+              <span className="ml-1 w-2 h-2 bg-green-400 rounded-full"></span>
+            )}
+          </Link>
+        </nav>
+
+        <div className="bg-[#744253] rounded-lg shadow-lg p-4 sm:p-6 border border-[#B49286]/10 overflow-x-auto">
+          <Routes>
+            <Route path="/course/:courseId" element={<ExamListWrapper />} />
+            <Route path="/all-exams" element={<AllExams />} />
+            <Route path="/exams/:examId" element={<ExamPage />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/create-course" element={<CreateCourse />} />
+            <Route path="/course-list" element={<CourseList />} />
+            <Route path="/create-exam" element={<CreateExamWithAI />} />
+          </Routes>
+        </div>
       </div>
-
-      {isRegistered === true && (
-        <ViewProfile onNotRegistered={handleNotRegistered} account={account} />
-      )}
-
-      {isRegistered === false && (
-        <RegisterUser onRegistrationSuccess={handleRegistrationSuccess} />
-      )}
     </div>
   );
+}
+
+function ExamListWrapper() {
+  const { courseId } = useParams();
+  return <ExamList courseId={Number(courseId)} />;
 }
 
 export default App;
