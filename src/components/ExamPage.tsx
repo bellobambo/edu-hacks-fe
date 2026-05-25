@@ -24,8 +24,14 @@ type MessageType = {
   type: "success" | "error" | "info";
 };
 
-export default function ExamPage() {
-  const { examId } = useParams();
+type ExamPageProps = {
+  examIdOverride?: number;
+  onSubmitted?: (examId: number) => void;
+};
+
+export default function ExamPage({ examIdOverride, onSubmitted }: ExamPageProps) {
+  const { examId: routeExamId } = useParams();
+  const examId = examIdOverride?.toString() ?? routeExamId;
   const { walletAddress } = useWallet();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<number[]>([]);
@@ -157,6 +163,7 @@ export default function ExamPage() {
 
       if (studentSubmission) {
         setSubmittedScore(Number(studentSubmission.score));
+        if (examId) onSubmitted?.(Number(examId));
       }
 
       await fetchCorrection();

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getLMSContract } from "../utils/contracts";
-
-import { Link } from "react-router-dom";
+import { useWallet } from "../utils/useWallet";
+import ExamPage from "./ExamPage";
 
 type Exam = {
   examId: number;
@@ -13,9 +13,14 @@ type Exam = {
 };
 
 const AllExams = () => {
+  const { walletAddress } = useWallet();
   const [exams, setExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [submittedExamIds, setSubmittedExamIds] = useState<Set<number>>(
+    new Set()
+  );
+  const [activeExam, setActiveExam] = useState<Exam | null>(null);
 
   useEffect(() => {
     const fetchAllExams = async () => {
@@ -30,6 +35,7 @@ const AllExams = () => {
         // Get all exam IDs
         const examIds = await contract.getAllExamIds();
         const examArray: Exam[] = [];
+        const submittedIds = new Set<number>();
 
         // Fetch details for each exam
         for (const id of examIds) {
@@ -42,9 +48,23 @@ const AllExams = () => {
             lecturerName: exam[4],
             questionCount: Number(exam[5]),
           });
+
+          if (walletAddress) {
+            const submissions = await contract.getExamSubmissions(id);
+            const hasSubmitted = submissions.some(
+              (submission: any) =>
+                submission.studentAddress.toLowerCase() ===
+                walletAddress.toLowerCase()
+            );
+
+            if (hasSubmitted) {
+              submittedIds.add(Number(id));
+            }
+          }
         }
 
         setExams(examArray);
+        setSubmittedExamIds(submittedIds);
       } catch (err: any) {
         setError(err.message || "Failed to fetch exams");
         console.error("Error fetching exams:", err);
@@ -54,7 +74,7 @@ const AllExams = () => {
     };
 
     fetchAllExams();
-  }, []);
+  }, [walletAddress]);
 
   if (loading) {
     return (
@@ -100,27 +120,62 @@ const AllExams = () => {
         <p className="text-[#744253]/80 text-sm sm:text-base">No exams found</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {exams.map((exam) => (
-            <div
-              key={exam.examId}
-              className="border border-[#B49286]/20 p-4 rounded-lg shadow hover:shadow-md transition-shadow bg-[#744253]/90"
-            >
-              <h3 className="font-semibold text-lg sm:text-xl mb-2 text-[#B49286]">
-                {exam.examTitle}
-              </h3>
-              <div className="space-y-1 text-[#B49286]/90 text-sm sm:text-base">
-                <p>Course ID: {exam.courseId}</p>
-                <p>Lecturer: {exam.lecturerName}</p>
-                <p>Questions: {exam.questionCount}</p>
-              </div>
-              <Link
-                to={`/exams/${exam.examId}`}
-                className="mt-3 inline-block bg-[#B49286] hover:bg-[#B49286]/90 text-[#744253] px-4 py-2 rounded transition-colors shadow text-sm sm:text-base"
+          {exams.map((exam) => {
+            const hasSubmitted = submittedExamIds.has(exam.examId);
+
+            return (
+              <div
+                key={exam.examId}
+                className="border border-[#B49286]/20 p-4 rounded-lg shadow hover:shadow-md transition-shadow bg-[#744253]/90"
               >
-                View Exam
-              </Link>
+                <h3 className="font-semibold text-lg sm:text-xl mb-2 text-[#B49286]">
+                  {exam.examTitle}
+                </h3>
+                <div className="space-y-1 text-[#B49286]/90 text-sm sm:text-base">
+                  <p>Course ID: {exam.courseId}</p>
+                  <p>Lecturer: {exam.lecturerName}</p>
+                  <p>Questions: {exam.questionCount}</p>
+                </div>
+                <button
+                  onClick={() => setActiveExam(exam)}
+                  className="mt-3 w-full bg-[#B49286] hover:bg-[#B49286]/90 text-[#744253] px-4 py-2 rounded transition-colors shadow text-sm sm:text-base font-medium"
+                >
+                  {hasSubmitted ? "View Past Questions" : "Take Exam"}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {activeExam && (
+        <div className="fixed inset-0 z-[90] bg-[#071013]/60">
+          <aside className="ml-auto h-full w-full max-w-4xl bg-[#744253] shadow-2xl border-l border-[#B49286]/20 overflow-y-auto">
+            <div className="sticky top-0 z-10 flex items-center justify-between gap-3 bg-[#744253] border-b border-[#B49286]/20 p-4">
+              <div>
+                <h3 className="text-lg font-semibold text-[#B49286]">
+                  {activeExam.examTitle}
+                </h3>
+                <p className="text-sm text-[#B49286]/75">
+                  {submittedExamIds.has(activeExam.examId)
+                    ? "Past questions and corrections"
+                    : "Answer all questions before submitting"}
+                </p>
+              </div>
+              <button
+                onClick={() => setActiveExam(null)}
+                className="border border-[#B49286]/30 text-[#B49286] hover:bg-[#B49286]/10 px-4 py-2 rounded-lg transition-colors"
+              >
+                Close
+              </button>
             </div>
-          ))}
+            <ExamPage
+              examIdOverride={activeExam.examId}
+              onSubmitted={(examId) => {
+                setSubmittedExamIds((current) => new Set(current).add(examId));
+              }}
+            />
+          </aside>
         </div>
       )}
     </div>

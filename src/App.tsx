@@ -28,7 +28,10 @@ function App() {
   const [isCorrectNetwork, setIsCorrectNetwork] = useState<boolean | null>(
     null
   );
-  const [userProfile, setUserProfile] = useState<{ name: string; isLecturer: boolean } | null>(null);
+  const [userProfile, setUserProfile] = useState<{
+    name: string;
+    isLecturer: boolean;
+  } | null>(null);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -361,7 +364,7 @@ function App() {
           <Route path="/exams/:examId" element={<ExamPage />} />
           <Route
             path="/profile"
-            element={<MainPage showLearningSections={Boolean(userProfile)} />}
+            element={<MainPage userProfile={userProfile} />}
           />
           <Route path="/create-course" element={<CreateCourse />} />
           <Route path="/course-list" element={<CourseList />} />
@@ -372,19 +375,74 @@ function App() {
   );
 }
 
-function MainPage({
-  showLearningSections,
-}: {
-  showLearningSections: boolean;
-}) {
+function MainPage({ userProfile }: { userProfile: {
+  name: string;
+  isLecturer: boolean;
+} | null }) {
+  const [activeView, setActiveView] = useState<"courses" | "exams">("courses");
+  const [showCreateCourseModal, setShowCreateCourseModal] = useState(false);
+  const [courseRefreshKey, setCourseRefreshKey] = useState(0);
+
   return (
     <div className="space-y-8">
-      <Profile />
+      {!userProfile && <Profile />}
 
-      {showLearningSections && (
+      {userProfile && (
         <>
-          <CourseList />
-          <AllExams />
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setActiveView("courses")}
+                className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                  activeView === "courses"
+                    ? "bg-[#744253] text-[#B49286]"
+                    : "bg-[#744253]/15 text-[#744253] hover:bg-[#744253]/25"
+                }`}
+              >
+                Courses
+              </button>
+              <button
+                onClick={() => setActiveView("exams")}
+                className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                  activeView === "exams"
+                    ? "bg-[#744253] text-[#B49286]"
+                    : "bg-[#744253]/15 text-[#744253] hover:bg-[#744253]/25"
+                }`}
+              >
+                Exams
+              </button>
+            </div>
+
+            {userProfile.isLecturer && activeView === "courses" && (
+              <button
+                onClick={() => setShowCreateCourseModal(true)}
+                className="bg-[#744253] hover:bg-[#744253]/90 text-[#B49286] px-4 py-2 rounded-lg transition-colors shadow text-sm font-medium"
+              >
+                Create Course
+              </button>
+            )}
+          </div>
+
+          {activeView === "courses" ? (
+            <CourseList refreshKey={courseRefreshKey} />
+          ) : (
+            <AllExams />
+          )}
+
+          {showCreateCourseModal && (
+            <div className="fixed inset-0 z-[80] bg-[#071013]/60 flex items-center justify-center p-4">
+              <div className="w-full max-w-xl">
+                <CreateCourse
+                  compact
+                  onCancel={() => setShowCreateCourseModal(false)}
+                  onCreated={() => {
+                    setCourseRefreshKey((key) => key + 1);
+                    setShowCreateCourseModal(false);
+                  }}
+                />
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>

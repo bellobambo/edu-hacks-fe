@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { getLMSContract } from "../utils/contracts";
 import { ethers } from "ethers";
 import ExamList from "./ExamList";
+import { Link, useSearchParams } from "react-router-dom";
 
 function UploadForm({
   onQuestionsGenerated,
@@ -184,6 +185,7 @@ function UploadForm({
 }
 
 export default function CreateExamWithAI() {
+  const [searchParams] = useSearchParams();
   const [courseId, setCourseId] = useState("");
   const [examTitle, setExamTitle] = useState("");
   const [loading, setLoading] = useState(false);
@@ -194,11 +196,11 @@ export default function CreateExamWithAI() {
   const [correctOption, setCorrectOption] = useState(0);
   const [generatedQuestions, setGeneratedQuestions] = useState<any[]>([]);
   const [showUploadForm, setShowUploadForm] = useState(false);
+  const [showQuestionDrawer, setShowQuestionDrawer] = useState(false);
   const [selectedQuestions, setSelectedQuestions] = useState<number[]>([]);
   const [courses, setCourses] = useState<any[]>([]);
   const [coursesLoading, setCoursesLoading] = useState(false);
 
-  // Modify the course fetching to filter by lecturer
   useEffect(() => {
     const fetchCourses = async () => {
       setCoursesLoading(true);
@@ -229,13 +231,22 @@ export default function CreateExamWithAI() {
           }
         }
         setCourses(courseArray);
+        const requestedCourseId = searchParams.get("courseId");
+        if (
+          requestedCourseId &&
+          courseArray.some(
+            (course) => Number(course.courseId) === Number(requestedCourseId)
+          )
+        ) {
+          setCourseId(requestedCourseId);
+        }
       } catch (error) {
         console.error("Error fetching courses:", error);
       }
       setCoursesLoading(false);
     };
     fetchCourses();
-  }, []);
+  }, [searchParams]);
 
   // const addGeneratedQuestion = (question: any) => {
   //   setQuestionText(question.text);
@@ -267,6 +278,7 @@ export default function CreateExamWithAI() {
       const examIds = await contract.getAllExamIds();
       const newExamId = examIds[examIds.length - 1];
       setExamId(Number(newExamId));
+      setShowQuestionDrawer(true);
 
       setMessage("Exam created successfully! Now add questions below.");
     } catch (error: any) {
@@ -417,7 +429,15 @@ export default function CreateExamWithAI() {
 
   return (
     <main className="max-w-6xl mx-auto p-4 sm:p-6 bg-[#744253] rounded-lg shadow-md border border-[#B49286]/20">
-      <h1 className="text-2xl font-bold mb-6 text-[#B49286]">Create Exam</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+        <h1 className="text-2xl font-bold text-[#B49286]">Create Exam</h1>
+        <Link
+          to="/profile"
+          className="bg-[#B49286]/15 hover:bg-[#B49286]/25 text-[#B49286] px-4 py-2 rounded-lg transition-colors text-sm font-medium text-center"
+        >
+          Courses
+        </Link>
+      </div>
 
       {/* Exam Creation Form */}
       {!examId ? (
@@ -495,6 +515,7 @@ export default function CreateExamWithAI() {
               <button
                 onClick={() => {
                   setExamId(null);
+                  setShowQuestionDrawer(false);
                   setMessage("");
                   setGeneratedQuestions([]);
                 }}
@@ -502,25 +523,41 @@ export default function CreateExamWithAI() {
               >
                 Back to Exam Creation
               </button>
+              <button
+                onClick={() => setShowQuestionDrawer(true)}
+                className="bg-[#B49286] hover:bg-[#B49286]/90 text-[#744253] px-4 py-2 rounded transition-colors font-medium"
+              >
+                Add Questions
+              </button>
             </div>
           </div>
 
           {/* Question Management Section */}
-          <div className="bg-[#744253]/90 p-6 rounded-lg shadow border border-[#B49286]/20">
-            <div className="flex justify-between items-center mb-6">
+          {showQuestionDrawer && (
+            <div className="fixed inset-0 z-[90] bg-[#071013]/60">
+              <aside className="ml-auto h-full w-full max-w-2xl bg-[#744253] shadow-2xl border-l border-[#B49286]/20 overflow-y-auto p-4 sm:p-6">
+            <div className="flex justify-between items-start gap-3 mb-6">
               <h2 className="text-xl font-semibold text-[#B49286]">
                 Add Questions
               </h2>
-              <button
-                onClick={() => setShowUploadForm(!showUploadForm)}
-                className={`px-4 py-2 rounded-md transition-colors ${
-                  showUploadForm
-                    ? "bg-[#B49286]/20 text-[#B49286]"
-                    : "bg-[#B49286] text-[#744253]"
-                }`}
-              >
-                {showUploadForm ? "Hide AI Generator" : "Generate with AI"}
-              </button>
+              <div className="flex flex-wrap justify-end gap-2">
+                <button
+                  onClick={() => setShowUploadForm(!showUploadForm)}
+                  className={`px-4 py-2 rounded-md transition-colors ${
+                    showUploadForm
+                      ? "bg-[#B49286]/20 text-[#B49286]"
+                      : "bg-[#B49286] text-[#744253]"
+                  }`}
+                >
+                  {showUploadForm ? "Hide AI Generator" : "Generate with AI"}
+                </button>
+                <button
+                  onClick={() => setShowQuestionDrawer(false)}
+                  className="px-4 py-2 rounded-md border border-[#B49286]/30 text-[#B49286] hover:bg-[#B49286]/10 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
             </div>
 
             {/* AI Question Generator */}
@@ -648,7 +685,9 @@ export default function CreateExamWithAI() {
                 {loading ? "Adding Question..." : "Add Question"}
               </button>
             </div>
-          </div>
+              </aside>
+            </div>
+          )}
         </div>
       )}
 
