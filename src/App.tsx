@@ -22,6 +22,7 @@ import { getLMSContract } from "./utils/contracts";
 function App() {
   const [account, setAccount] = useState<string | null>(null);
   const [__, setError] = useState<string | null>(null);
+  const [balance, setBalance] = useState("0");
   const [_, setProvider] = useState<ethers.BrowserProvider | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isCorrectNetwork, setIsCorrectNetwork] = useState<boolean | null>(
@@ -67,6 +68,14 @@ function App() {
     }
   };
 
+  const fetchBalance = async (
+    provider: ethers.BrowserProvider,
+    address: string
+  ) => {
+    const walletBalance = await provider.getBalance(address);
+    setBalance(Number(ethers.formatEther(walletBalance)).toFixed(4));
+  };
+
   const connect = async () => {
     try {
       setIsConnecting(true);
@@ -82,6 +91,7 @@ function App() {
 
       const accounts = await newProvider.send("eth_requestAccounts", []);
       setAccount(accounts[0]);
+      await fetchBalance(newProvider, accounts[0]);
 
       // Check network but don't force switch
       const isCorrect = await checkNetwork(newProvider);
@@ -160,6 +170,7 @@ function App() {
   const handleSignOut = () => {
     setAccount(null);
     setError(null);
+    setBalance("0");
     setIsCorrectNetwork(null);
     toast.success("Disconnected successfully");
   };
@@ -180,6 +191,7 @@ function App() {
         const accounts = await newProvider.listAccounts();
         if (accounts.length > 0) {
           setAccount(accounts[0].address);
+          await fetchBalance(newProvider, accounts[0].address);
           await checkNetwork(newProvider);
           await fetchUserProfile();
         }
@@ -321,6 +333,10 @@ function App() {
                 </span>
                 <span className="text-[#B49286]/60 group-hover:text-[#B49286] text-xs">⎘</span>
               </button>
+
+              <div className="bg-[#B49286]/10 rounded-lg px-3 py-1.5 text-[#B49286] text-xs sm:text-sm font-medium">
+                {balance} {isCorrectNetwork ? "EDU" : "ETH"}
+              </div>
 
               <button
                 onClick={handleSignOut}
