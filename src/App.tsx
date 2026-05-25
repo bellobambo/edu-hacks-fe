@@ -3,6 +3,7 @@ import { ethers } from "ethers";
 import {
   Routes,
   Route,
+  Navigate,
   Link,
   useParams,
   useNavigate,
@@ -16,16 +17,17 @@ import CreateCourse from "./components/CreateCourse";
 import CourseList from "./components/CourseList";
 import CreateExamWithAI from "./components/CreateExam";
 import AllExams from "./components/AllExams";
+import { getLMSContract } from "./utils/contracts";
 
 function App() {
   const [account, setAccount] = useState<string | null>(null);
   const [__, setError] = useState<string | null>(null);
-  const [balance, setBalance] = useState<string>("0");
   const [_, setProvider] = useState<ethers.BrowserProvider | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isCorrectNetwork, setIsCorrectNetwork] = useState<boolean | null>(
     null
   );
+  const [userProfile, setUserProfile] = useState<{ name: string; isLecturer: boolean } | null>(null);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -44,6 +46,27 @@ function App() {
     }
   };
 
+  const fetchUserProfile = async () => {
+    try {
+      const contract = await getLMSContract();
+      if (!contract) return null;
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const address = await signer.getAddress();
+      const user = await contract.getUserProfile(address);
+      if (user[1]) {
+        const profile = { name: user[1], isLecturer: user[3] };
+        setUserProfile(profile);
+        return profile;
+      }
+      setUserProfile(null);
+      return null;
+    } catch {
+      setUserProfile(null);
+      return null;
+    }
+  };
+
   const connect = async () => {
     try {
       setIsConnecting(true);
@@ -59,7 +82,6 @@ function App() {
 
       const accounts = await newProvider.send("eth_requestAccounts", []);
       setAccount(accounts[0]);
-      await fetchBalance(newProvider, accounts[0]);
 
       // Check network but don't force switch
       const isCorrect = await checkNetwork(newProvider);
@@ -81,6 +103,7 @@ function App() {
       }
 
       setError(null);
+      await fetchUserProfile();
       navigate("/profile");
     } catch (err: any) {
       setError(err.message || "Failed to connect");
@@ -134,18 +157,9 @@ function App() {
     }
   };
 
-  const fetchBalance = async (
-    provider: ethers.BrowserProvider,
-    address: string
-  ) => {
-    const balance = await provider.getBalance(address);
-    setBalance(ethers.formatEther(balance).substring(0, 6)); // Show first 6 decimals
-  };
-
   const handleSignOut = () => {
     setAccount(null);
     setError(null);
-    setBalance("0");
     setIsCorrectNetwork(null);
     toast.success("Disconnected successfully");
   };
@@ -157,10 +171,6 @@ function App() {
     }
   };
 
-  const isActive = (path: string) => {
-    return location.pathname === path;
-  };
-
   useEffect(() => {
     const autoConnect = async () => {
       if (window.ethereum) {
@@ -170,13 +180,19 @@ function App() {
         const accounts = await newProvider.listAccounts();
         if (accounts.length > 0) {
           setAccount(accounts[0].address);
-          await fetchBalance(newProvider, accounts[0].address);
           await checkNetwork(newProvider);
+          await fetchUserProfile();
         }
       }
     };
     autoConnect();
   }, []);
+
+  useEffect(() => {
+    if (account && location.pathname !== "/profile") {
+      fetchUserProfile();
+    }
+  }, [location.pathname]);
 
   if (!account) {
     return (
@@ -234,7 +250,7 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#B49286] p-4 sm:p-6">
+    <div className="min-h-screen bg-[#B49286]">
       <Toaster
         position="top-right"
         toastOptions={{
@@ -248,106 +264,113 @@ function App() {
 
       {/* Network Indicator Banner */}
       {isCorrectNetwork === false && (
-        <div className="bg-yellow-500 text-white p-2 text-center mb-4">
-          You're not on EduChain Testnet. Switch to ensure proper on-chain
-          recording.
+        <div className="bg-yellow-500 text-white p-2 text-center text-sm">
+          You're not on EduChain Testnet.
           <button
             onClick={switchToEduChain}
-            className="ml-2 px-2 py-1 bg-[#744253] rounded text-sm"
+            className="ml-2 px-2 py-0.5 bg-[#744253] rounded text-xs"
           >
             Switch Network
           </button>
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 sm:mb-8 p-4 bg-[#744253] rounded-lg shadow-md border border-[#B49286]/20 space-y-4 sm:space-y-0">
-          <h1 className="text-xl sm:text-2xl font-bold text-[#B49286]">
-            Proof
-          </h1>
+      {/* ── Navbar ── */}
+      <nav className="sticky top-0 z-50 bg-[#744253] border-b border-[#B49286]/20 shadow-md">
+        <div className="w-full px-4 sm:px-6">
+          <div className="flex items-center justify-between h-16">
 
-          <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-2 sm:space-y-0">
-            <div
-              className="flex items-center bg-[#B49286]/10 hover:bg-[#B49286]/20 rounded-full px-3 py-1 transition-colors group cursor-pointer"
-              onClick={copyAddress}
-            >
-              <span className="text-[#B49286] text-xs sm:text-sm mr-1">
-                Connected:
-              </span>
-              <span className="font-mono text-[#B49286] text-xs sm:text-sm">
-                {account.substring(0, 6)}...
-                {account.substring(account.length - 4)}
-              </span>
-              <span className="ml-2 text-[#B49286] opacity-70 group-hover:opacity-100 transition-opacity">
-                &#128220;
-              </span>
+            {/* Left: logo + user greeting */}
+            <div className="flex items-center gap-4">
+              <Link
+                to="/profile"
+                className="text-xl font-bold text-[#B49286] tracking-tight"
+              >
+                Proof
+              </Link>
+
+              {userProfile && (
+                <div className="hidden sm:flex items-center gap-2">
+                  <span className="text-[#B49286] text-sm">
+                    Hi, {userProfile.name}
+                  </span>
+                  <span className="bg-[#B49286] text-[#744253] text-xs font-semibold px-2 py-0.5 rounded-md">
+                    {userProfile.isLecturer ? "Lecturer" : "Student"}
+                  </span>
+                </div>
+              )}
             </div>
 
-            <div className="bg-[#B49286]/10 px-3 py-1 rounded-full text-[#B49286] font-medium text-xs sm:text-sm text-center">
-              {balance} {isCorrectNetwork ? "EDU" : "ETH"}
-            </div>
+            {/* Right: register + wallet + disconnect */}
+            <div className="flex items-center gap-2 sm:gap-3">
+              {!userProfile && (
+                <Link
+                  to="/profile"
+                  className="bg-[#B49286] text-[#744253] text-xs sm:text-sm font-semibold px-3 py-1.5 rounded-lg hover:bg-[#B49286]/90 transition-colors"
+                >
+                  Register
+                </Link>
+              )}
 
-            <button
-              onClick={handleSignOut}
-              className="bg-[#071013] hover:bg-[#071013]/90 text-white px-4 py-2 rounded transition-colors shadow cursor-pointer text-xs sm:text-sm"
-            >
-              Disconnect
-            </button>
+              <button
+                onClick={copyAddress}
+                className="hidden sm:flex items-center gap-1.5 bg-[#B49286]/10 hover:bg-[#B49286]/20 rounded-lg px-3 py-1.5 transition-colors group"
+              >
+                <span className="font-mono text-[#B49286] text-xs">
+                  {account.substring(0, 4)}…{account.substring(account.length - 4)}
+                </span>
+                <span className="text-[#B49286]/60 group-hover:text-[#B49286] text-xs">⎘</span>
+              </button>
+
+              <button
+                onClick={handleSignOut}
+                className="bg-[#071013] hover:bg-[#071013]/80 text-white text-xs sm:text-sm font-medium px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-colors shadow"
+              >
+                Disconnect
+              </button>
+            </div>
           </div>
         </div>
+      </nav>
 
-        <nav className="flex flex-wrap gap-2 sm:gap-4 mb-6 sm:mb-8 p-4 bg-[#744253] rounded-lg shadow-md border border-[#B49286]/20">
-          <Link
-            to="/profile"
-            className={`${
-              isActive("/profile") ? "bg-[#B49286]/30" : "hover:bg-[#B49286]/20"
-            } text-[#B49286] px-4 py-2 rounded-full transition-colors font-medium text-sm flex items-center`}
-          >
-            <span className="mr-2">👤</span> Profile
-            {isActive("/profile") && (
-              <span className="ml-1 w-2 h-2 bg-green-400 rounded-full"></span>
-            )}
-          </Link>
-          <Link
-            to="/course-list"
-            className={`${
-              isActive("/course-list")
-                ? "bg-[#B49286]/30"
-                : "hover:bg-[#B49286]/20"
-            } text-[#B49286] px-4 py-2 rounded-full transition-colors font-medium text-sm flex items-center`}
-          >
-            <span className="mr-2">📚</span> Courses
-            {isActive("/course-list") && (
-              <span className="ml-1 w-2 h-2 bg-green-400 rounded-full"></span>
-            )}
-          </Link>
-          <Link
-            to="/all-exams"
-            className={`${
-              isActive("/all-exams")
-                ? "bg-[#B49286]/30"
-                : "hover:bg-[#B49286]/20"
-            } text-[#B49286] px-4 py-2 rounded-full transition-colors font-medium text-sm flex items-center`}
-          >
-            <span className="mr-2">📝</span> All Exams
-            {isActive("/all-exams") && (
-              <span className="ml-1 w-2 h-2 bg-green-400 rounded-full"></span>
-            )}
-          </Link>
-        </nav>
+      {/* ── Page content ── */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-20 pb-6">
+        <Routes>
+          <Route
+            path="/"
+            element={<Navigate to="/profile" replace />}
+          />
+          <Route path="/course/:courseId" element={<ExamListWrapper />} />
+          <Route path="/all-exams" element={<AllExams />} />
+          <Route path="/exams/:examId" element={<ExamPage />} />
+          <Route
+            path="/profile"
+            element={<MainPage showLearningSections={Boolean(userProfile)} />}
+          />
+          <Route path="/create-course" element={<CreateCourse />} />
+          <Route path="/course-list" element={<CourseList />} />
+          <Route path="/create-exam" element={<CreateExamWithAI />} />
+        </Routes>
+      </main>
+    </div>
+  );
+}
 
-        <div className="bg-[#744253] rounded-lg shadow-lg p-4 sm:p-6 border border-[#B49286]/10 overflow-x-auto">
-          <Routes>
-            <Route path="/course/:courseId" element={<ExamListWrapper />} />
-            <Route path="/all-exams" element={<AllExams />} />
-            <Route path="/exams/:examId" element={<ExamPage />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/create-course" element={<CreateCourse />} />
-            <Route path="/course-list" element={<CourseList />} />
-            <Route path="/create-exam" element={<CreateExamWithAI />} />
-          </Routes>
-        </div>
-      </div>
+function MainPage({
+  showLearningSections,
+}: {
+  showLearningSections: boolean;
+}) {
+  return (
+    <div className="space-y-8">
+      <Profile />
+
+      {showLearningSections && (
+        <>
+          <CourseList />
+          <AllExams />
+        </>
+      )}
     </div>
   );
 }

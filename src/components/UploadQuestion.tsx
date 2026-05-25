@@ -5,6 +5,7 @@ import { useState } from "react";
 export default function UploadForm() {
   const [uploadedFile, setUploadedFile] = useState(null);
   const [questionCount, setQuestionCount] = useState(5);
+  const [description, setDescription] = useState("");
   const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -38,6 +39,11 @@ export default function UploadForm() {
       return;
     }
 
+    if (!description.trim()) {
+      setError("Please enter a description for the generated questions.");
+      return;
+    }
+
     setLoading(true);
     setResult("");
     setError("");
@@ -45,9 +51,10 @@ export default function UploadForm() {
     const formData = new FormData();
     formData.append("file", uploadedFile);
     formData.append("questionCount", questionCount.toString());
+    formData.append("description", description.trim());
 
     try {
-      const res = await fetch("https://eduhack-three.vercel.app/api/upload", {
+      const res = await fetch("https://eduhack-ozld.vercel.app/api/upload", {
         method: "POST",
         body: formData,
       });
@@ -98,12 +105,24 @@ export default function UploadForm() {
         />
       </div>
 
+      <div className="space-y-2">
+        <label className="block text-sm sm:text-base font-medium text-gray-700">
+          Lesson Description
+        </label>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Week 3 biology lesson on photosynthesis"
+          className="w-full border rounded-md p-2 min-h-[100px]"
+        />
+      </div>
+
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <div className="mt-4">
         <button
           onClick={handleSubmit}
-          disabled={loading || !uploadedFile}
+          disabled={loading || !uploadedFile || !description.trim()}
           className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
         >
           {loading ? "Generating..." : "Generate Questions"}
