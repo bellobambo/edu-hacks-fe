@@ -6,7 +6,17 @@ import { useWallet } from "../utils/useWallet";
 type Question = {
   questionText: string;
   options: string[];
+};
+
+type CorrectionQuestion = Question & {
   correctOption: number;
+};
+
+type Correction = {
+  questions: CorrectionQuestion[];
+  submittedAnswers: number[];
+  score: number;
+  submissionTime: number;
 };
 
 type MessageType = {
@@ -24,6 +34,32 @@ export default function ExamPage() {
   const [message, setMessage] = useState<MessageType | null>(null);
   const [maxPossibleScore, setMaxPossibleScore] = useState<number | null>(null);
   const [examEnded, setExamEnded] = useState(false);
+  const [correction, setCorrection] = useState<Correction | null>(null);
+  const [explanations, setExplanations] = useState<Record<number, string>>({});
+  const [explainingIndex, setExplainingIndex] = useState<number | null>(null);
+
+  const fetchCorrection = async () => {
+    const contract = await getLMSContract();
+    if (!contract || !examId) return;
+
+    const [correctionQuestions, submittedAnswers, score, submissionTime] =
+      await contract.getMyExamCorrection(Number(examId));
+    const parsedQuestions = correctionQuestions.map((q: any) => ({
+      questionText: q.questionText,
+      options: Array.from(q.options ?? []),
+      correctOption: Number(q.correctOption),
+    }));
+
+    setCorrection({
+      questions: parsedQuestions,
+      submittedAnswers: submittedAnswers.map((answer: bigint | number) =>
+        Number(answer)
+      ),
+      score: Number(score),
+      submissionTime: Number(submissionTime),
+    });
+    setMaxPossibleScore(parsedQuestions.length);
+  };
 
   useEffect(() => {
     if (!examId || !walletAddress) return;
@@ -45,12 +81,20 @@ export default function ExamPage() {
 
         if (existing) {
           setSubmittedScore(Number(existing.score)); // ✅ FIXED
+          await fetchCorrection();
         }
 
-        const q = await contract.getExamQuestions(Number(examId));
-        setQuestions(q);
-        setMaxPossibleScore(q.length);
-        setAnswers(new Array(q.length).fill(-1));
+        const [questionTexts, optionsList] =
+          await contract.getExamQuestionsForStudent(Number(examId));
+        const studentQuestions = questionTexts.map(
+          (questionText: string, index: number) => ({
+            questionText,
+            options: Array.from(optionsList[index] ?? []),
+          })
+        );
+        setQuestions(studentQuestions);
+        setMaxPossibleScore(studentQuestions.length);
+        setAnswers(new Array(studentQuestions.length).fill(-1));
       } catch (error: any) {
         console.error("Error loading exam data", error);
         setMessage({
@@ -112,8 +156,10 @@ export default function ExamPage() {
       );
 
       if (studentSubmission) {
-        setSubmittedScore(studentSubmission.score);
+        setSubmittedScore(Number(studentSubmission.score));
       }
+
+      await fetchCorrection();
 
       setMessage({
         text: "Answers submitted successfully!",
@@ -132,7 +178,8 @@ export default function ExamPage() {
                 sub.studentAddress.toLowerCase() === walletAddress.toLowerCase()
             );
             if (existing) {
-              setSubmittedScore(existing.score);
+              setSubmittedScore(Number(existing.score));
+              await fetchCorrection();
               setMessage({
                 text: "You've already submitted this exam. Here's your score.",
                 type: "info",
@@ -165,6 +212,50 @@ export default function ExamPage() {
     setLoading(false);
   };
 
+  const explainAnswer = async (questionIndex: number) => {
+    if (!correction) return;
+
+    const question = correction.questions[questionIndex];
+    const selectedAnswerIndex = correction.submittedAnswers[questionIndex];
+    const selectedAnswer = question.options[selectedAnswerIndex] ?? "";
+    const correctAnswer = question.options[question.correctOption] ?? "";
+
+    setExplainingIndex(questionIndex);
+    setMessage(null);
+
+    try {
+      const res = await fetch("https://eduhack-ozld.vercel.app/api/explain", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          question: question.questionText,
+          selectedAnswer,
+          correctAnswer,
+          context: `Exam #${examId}`,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.error || "Failed to explain answer");
+      }
+
+      setExplanations((prev) => ({
+        ...prev,
+        [questionIndex]: data.explanation || data.result || data.message || "",
+      }));
+    } catch (error: any) {
+      setMessage({
+        text: error.message || "Failed to explain answer",
+        type: "error",
+      });
+    } finally {
+      setExplainingIndex(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 flex justify-center">
@@ -194,20 +285,78 @@ export default function ExamPage() {
             <div>
               <p className="text-sm text-gray-700">Percentage:</p>
               <p className="text-2xl font-bold text-green-700">
-                <p className="text-2xl font-bold text-green-700">
-                  {maxPossibleScore
-                    ? `${Math.round(
-                        (Number(submittedScore) / Number(maxPossibleScore)) *
-                          100
-                      )}%`
-                    : "N/A"}
-                </p>
+                {maxPossibleScore
+                  ? `${Math.round(
+                      (Number(submittedScore) / Number(maxPossibleScore)) * 100
+                    )}%`
+                  : "N/A"}
               </p>
             </div>
           </div>
           <p className="mt-2 text-sm text-gray-700 break-all">
             Wallet: {walletAddress}
           </p>
+
+          {correction && (
+            <div className="mt-6 space-y-4">
+              <h3 className="text-base font-semibold text-green-900">
+                Answer Review
+              </h3>
+
+              {correction.questions.map((question, index) => {
+                const selectedAnswerIndex = correction.submittedAnswers[index];
+                const selectedAnswer =
+                  question.options[selectedAnswerIndex] ?? "No answer";
+                const correctAnswer =
+                  question.options[question.correctOption] ?? "Unavailable";
+                const isCorrect =
+                  selectedAnswerIndex === question.correctOption;
+
+                return (
+                  <div
+                    key={index}
+                    className="rounded-lg border border-green-200 bg-white p-3"
+                  >
+                    <p className="font-medium text-gray-900">
+                      {index + 1}. {question.questionText}
+                    </p>
+                    <p className="mt-2 text-sm text-gray-700">
+                      Your answer:{" "}
+                      <span
+                        className={
+                          isCorrect ? "font-medium text-green-700" : "font-medium text-red-700"
+                        }
+                      >
+                        {selectedAnswer}
+                      </span>
+                    </p>
+                    <p className="text-sm text-gray-700">
+                      Correct answer:{" "}
+                      <span className="font-medium text-green-700">
+                        {correctAnswer}
+                      </span>
+                    </p>
+
+                    <button
+                      onClick={() => explainAnswer(index)}
+                      disabled={explainingIndex === index}
+                      className="mt-3 bg-[#744253] hover:bg-[#744253]/90 text-[#B49286] px-3 py-1.5 rounded text-sm disabled:opacity-50"
+                    >
+                      {explainingIndex === index
+                        ? "Explaining..."
+                        : "Explain Answer"}
+                    </button>
+
+                    {explanations[index] && (
+                      <p className="mt-3 text-sm text-gray-800 bg-green-50 border border-green-100 rounded p-3">
+                        {explanations[index]}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       ) : questions.length > 0 ? (
         <>

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { getLMSContract } from "../utils/contracts";
-import Enroll from "./Enroll";
 import { ethers } from "ethers";
 
 type Course = {
@@ -24,6 +23,14 @@ export default function CourseList() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [enrollingCourseId, setEnrollingCourseId] = useState<number | null>(
+    null
+  );
+  const [enrollMessage, setEnrollMessage] = useState<{
+    courseId: number;
+    text: string;
+    type: "success" | "error";
+  } | null>(null);
 
   useEffect(() => {
     const fetchCoursesAndProfile = async () => {
@@ -47,18 +54,18 @@ export default function CourseList() {
         });
 
         // Fetch courses
-        const count = await contract.courseCount();
+        const courseIds = await contract.getAllCourseIds();
         const courseArray: Course[] = [];
 
-        for (let i = 0; i < Number(count); i++) {
-          const course = await contract.courses(i);
+        for (const id of courseIds) {
+          const course = await contract.getCourseInfo(id);
           courseArray.push({
-            courseId: course.courseId,
-            title: course.title,
-            description: course.description,
-            lecturer: course.lecturer,
-            lecturerName: course.lecturerName,
-            creationDate: course.creationDate,
+            courseId: course[0],
+            title: course[1],
+            description: course[2],
+            lecturer: course[3],
+            lecturerName: course[4],
+            creationDate: course[5],
           });
         }
 
@@ -72,15 +79,40 @@ export default function CourseList() {
     fetchCoursesAndProfile();
   }, []);
 
-  if (loading) return <p>Loading courses...</p>;
+  const enrollInCourse = async (courseId: number) => {
+    setEnrollingCourseId(courseId);
+    setEnrollMessage(null);
+
+    try {
+      const contract = await getLMSContract();
+      if (!contract) throw new Error("Contract not found");
+
+      const tx = await contract.enrollInCourse(courseId);
+      await tx.wait();
+
+      setEnrollMessage({
+        courseId,
+        text: "Enrolled successfully!",
+        type: "success",
+      });
+    } catch (error: any) {
+      setEnrollMessage({
+        courseId,
+        text: error.reason || error.message || "Enrollment failed",
+        type: "error",
+      });
+    } finally {
+      setEnrollingCourseId(null);
+    }
+  };
+
+  if (loading) return <p className="text-[#744253]">Loading courses...</p>;
 
   return (
-    <div className="container mx-auto p-4 sm:p-6">
-      <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-[#B49286]">
+    <div>
+      <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-[#744253]">
         Available Courses
       </h2>
-
-      <Enroll courses={courses} />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
         {courses.length > 0 ? (
@@ -108,10 +140,36 @@ export default function CourseList() {
                   ).toLocaleDateString()}
                 </p>
               </div>
+
+              {!profile?.isLecturer && (
+                <div className="mt-4">
+                  <button
+                    onClick={() => enrollInCourse(Number(course.courseId))}
+                    disabled={enrollingCourseId === Number(course.courseId)}
+                    className="w-full bg-[#B49286] hover:bg-[#B49286]/90 text-[#744253] px-4 py-2 rounded transition-colors shadow disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm sm:text-base"
+                  >
+                    {enrollingCourseId === Number(course.courseId)
+                      ? "Enrolling..."
+                      : "Enroll"}
+                  </button>
+
+                  {enrollMessage?.courseId === Number(course.courseId) && (
+                    <p
+                      className={`mt-2 text-sm ${
+                        enrollMessage.type === "success"
+                          ? "text-green-200"
+                          : "text-red-200"
+                      }`}
+                    >
+                      {enrollMessage.text}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           ))
         ) : (
-          <p className="text-sm sm:text-base text-[#B49286]/80">
+          <p className="text-sm sm:text-base text-[#744253]/80">
             No courses available.
           </p>
         )}
@@ -120,7 +178,7 @@ export default function CourseList() {
       {profile?.isLecturer && (
         <a
           href="/create-exam"
-          className="inline-block mt-6 bg-[#744253] hover:bg-[#744253]/90 text-[#B49286] px-4 py-2 rounded transition-colors shadow border border-[#B49286]/20 text-sm sm:text-base"
+          className="inline-block mt-6 bg-[#744253] hover:bg-[#744253]/90 text-[#B49286] px-4 py-2 rounded transition-colors shadow text-sm sm:text-base"
         >
           Create Exam
         </a>

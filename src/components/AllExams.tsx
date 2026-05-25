@@ -6,10 +6,10 @@ import { Link } from "react-router-dom";
 type Exam = {
   examId: number;
   examTitle: string;
-  duration: number;
   courseId: number;
   lecturer: string;
   lecturerName: string;
+  questionCount: number;
 };
 
 const AllExams = () => {
@@ -33,14 +33,14 @@ const AllExams = () => {
 
         // Fetch details for each exam
         for (const id of examIds) {
-          const exam = await contract.exams(id);
+          const exam = await contract.getExamInfo(id);
           examArray.push({
-            examId: Number(id),
-            examTitle: exam.examTitle,
-            duration: Number(exam.duration),
-            courseId: Number(exam.courseId),
-            lecturer: exam.lecturer,
-            lecturerName: exam.lecturerName,
+            examId: Number(exam[0]),
+            examTitle: exam[1],
+            courseId: Number(exam[2]),
+            lecturer: exam[3],
+            lecturerName: exam[4],
+            questionCount: Number(exam[5]),
           });
         }
 
@@ -58,10 +58,10 @@ const AllExams = () => {
 
   if (loading) {
     return (
-      <div className="p-6 bg-[#744253] rounded-lg shadow-md border border-[#B49286]/20">
-        <div className="flex items-center justify-center space-x-2 text-[#B49286]">
+      <div className="p-6">
+        <div className="flex items-center justify-center space-x-2 text-[#744253]">
           <svg
-            className="animate-spin h-5 w-5 text-[#B49286]"
+            className="animate-spin h-5 w-5 text-[#744253]"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -91,13 +91,13 @@ const AllExams = () => {
   }
 
   return (
-    <div className="p-4 sm:p-6 bg-[#744253] rounded-lg shadow-md border border-[#B49286]/20">
-      <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-[#B49286]">
+    <div>
+      <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-[#744253]">
         All Exams
       </h2>
 
       {exams.length === 0 ? (
-        <p className="text-[#B49286]/80 text-sm sm:text-base">No exams found</p>
+        <p className="text-[#744253]/80 text-sm sm:text-base">No exams found</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {exams.map((exam) => (
@@ -109,15 +109,9 @@ const AllExams = () => {
                 {exam.examTitle}
               </h3>
               <div className="space-y-1 text-[#B49286]/90 text-sm sm:text-base">
-                <p>
-                  Duration:{" "}
-                  {exam.duration && Number(exam.duration) >= 60
-                    ? `${Math.floor(Number(exam.duration) / 60)} minutes`
-                    : `${Number(exam.duration || 0)} seconds`}
-                </p>
-
                 <p>Course ID: {exam.courseId}</p>
                 <p>Lecturer: {exam.lecturerName}</p>
+                <p>Questions: {exam.questionCount}</p>
               </div>
               <Link
                 to={`/exams/${exam.examId}`}

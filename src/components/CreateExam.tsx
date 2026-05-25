@@ -12,6 +12,7 @@ function UploadForm({
 }) {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [questionCount, setQuestionCount] = useState(5);
+  const [description, setDescription] = useState("");
   const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -45,6 +46,11 @@ function UploadForm({
       return;
     }
 
+    if (!description.trim()) {
+      setError("Please enter a description for the generated questions.");
+      return;
+    }
+
     setLoading(true);
     setResult("");
     setError("");
@@ -52,9 +58,10 @@ function UploadForm({
     const formData = new FormData();
     formData.append("file", uploadedFile);
     formData.append("questionCount", questionCount.toString());
+    formData.append("description", description.trim());
 
     try {
-      const res = await fetch("https://eduhack-three.vercel.app/api/upload", {
+      const res = await fetch("https://eduhack-ozld.vercel.app/api/upload", {
         method: "POST",
         body: formData,
       });
@@ -108,14 +115,28 @@ function UploadForm({
         </div>
       </div>
 
+      <div className="space-y-2 mb-6">
+        <label className="block font-medium text-[#B49286]">
+          Lesson Description
+        </label>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Week 3 biology lesson on photosynthesis"
+          className="w-full border border-[#B49286]/30 rounded-lg p-3 bg-[#744253]/10 focus:ring-2 focus:ring-[#B49286]/50 focus:border-[#B49286]/50 text-[#071013] min-h-[100px]"
+        />
+      </div>
+
       {error && <p className="text-red-400">{error}</p>}
 
       <div>
         <button
           onClick={handleSubmit}
-          disabled={loading || !uploadedFile}
+          disabled={loading || !uploadedFile || !description.trim()}
           className={`w-full sm:w-auto bg-[#744253] text-[#B49286] px-6 py-3 rounded-lg hover:bg-[#744253]/90 transition-colors shadow-md ${
-            loading || !uploadedFile ? "opacity-70 cursor-not-allowed" : ""
+            loading || !uploadedFile || !description.trim()
+              ? "opacity-70 cursor-not-allowed"
+              : ""
           }`}
         >
           {loading ? (
@@ -165,7 +186,6 @@ function UploadForm({
 export default function CreateExamWithAI() {
   const [courseId, setCourseId] = useState("");
   const [examTitle, setExamTitle] = useState("");
-  const [duration, setDuration] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [examId, setExamId] = useState<number | null>(null);
@@ -190,20 +210,21 @@ export default function CreateExamWithAI() {
         const signer = await provider.getSigner();
         const lecturerAddress = await signer.getAddress();
 
-        const count = await contract.courseCount();
+        const courseIds = await contract.getLecturerCourseIds();
         const courseArray = [];
 
-        for (let i = 0; i < Number(count); i++) {
-          const course = await contract.courses(i);
+        for (const id of courseIds) {
+          const course = await contract.getCourseInfo(id);
+          const lecturer = String(course[3]);
           // Only include courses where the current user is the lecturer
-          if (course.lecturer === lecturerAddress) {
+          if (lecturer.toLowerCase() === lecturerAddress.toLowerCase()) {
             courseArray.push({
-              courseId: course.courseId,
-              title: course.title,
-              description: course.description,
-              lecturer: course.lecturer,
-              lecturerName: course.lecturerName,
-              creationDate: course.creationDate,
+              courseId: course[0],
+              title: course[1],
+              description: course[2],
+              lecturer,
+              lecturerName: course[4],
+              creationDate: course[5],
             });
           }
         }
@@ -240,16 +261,12 @@ export default function CreateExamWithAI() {
       );
       if (!selectedCourse) throw new Error("Invalid course selected");
 
-      const tx = await contract.createExam(
-        Number(courseId),
-        examTitle,
-        parseInt(duration) * 60
-      );
+      const tx = await contract.createExam(Number(courseId), examTitle);
       await tx.wait();
 
       const examIds = await contract.getAllExamIds();
       const newExamId = examIds[examIds.length - 1];
-      setExamId(newExamId);
+      setExamId(Number(newExamId));
 
       setMessage("Exam created successfully! Now add questions below.");
     } catch (error: any) {
@@ -452,21 +469,9 @@ export default function CreateExamWithAI() {
               className="border border-[#B49286]/30 p-2 w-full rounded bg-[#744253]/90 text-[#B49286] placeholder-[#B49286]/60 focus:outline-none focus:ring-1 focus:ring-[#B49286]"
             />
           </div>
-          <div>
-            <label className="block mb-1 text-[#B49286]">
-              Duration (minutes)
-            </label>
-            <input
-              type="number"
-              placeholder="Duration"
-              value={duration}
-              onChange={(e) => setDuration(e.target.value)}
-              className="border border-[#B49286]/30 p-2 w-full rounded bg-[#744253]/90 text-[#B49286] placeholder-[#B49286]/60 focus:outline-none focus:ring-1 focus:ring-[#B49286]"
-            />
-          </div>
           <div className="md:col-span-2">
             <button
-              disabled={loading || !courseId || !examTitle || !duration}
+              disabled={loading || !courseId || !examTitle}
               onClick={createExam}
               className="w-full bg-[#B49286] hover:bg-[#B49286]/90 text-[#744253] px-6 py-3 rounded-lg transition-colors shadow disabled:opacity-50 disabled:cursor-not-allowed font-medium"
             >

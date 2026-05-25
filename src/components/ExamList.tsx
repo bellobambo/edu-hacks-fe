@@ -5,8 +5,8 @@ import { getLMSContract } from "../utils/contracts";
 type Exam = {
   examId: number;
   examTitle: string;
-  duration: number;
   courseId: number;
+  questionCount: number;
 };
 
 interface ExamListProps {
@@ -28,12 +28,12 @@ export default function ExamList({ courseId }: ExamListProps) {
         const examArray = [];
 
         for (const id of examIds) {
-          const exam = await contract.exams(id);
+          const exam = await contract.getExamInfo(id);
           examArray.push({
-            examId: Number(exam.examId),
-            examTitle: exam.examTitle,
-            duration: Number(exam.duration),
-            courseId: Number(exam.courseId),
+            examId: Number(exam[0]),
+            examTitle: exam[1],
+            courseId: Number(exam[2]),
+            questionCount: Number(exam[5]),
           });
         }
 
@@ -94,7 +94,9 @@ export default function ExamList({ courseId }: ExamListProps) {
               className="block text-[#B49286] hover:underline text-sm sm:text-base"
             >
               {exam.examTitle}{" "}
-              <span className="text-[#B49286]/70">({exam.duration} mins)</span>
+              <span className="text-[#B49286]/70">
+                ({exam.questionCount} questions)
+              </span>
             </a>
           </li>
         ))}
