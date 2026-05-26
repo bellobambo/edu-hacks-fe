@@ -30,6 +30,7 @@ export default function CreateCourse({
       setTitle("");
       setDescription("");
       onCreated?.();
+      window.location.reload();
     } catch (error: any) {
       setMessage(error.message || "Failed to create course");
     }

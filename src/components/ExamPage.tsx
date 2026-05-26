@@ -163,6 +163,7 @@ export default function ExamPage({ examIdOverride, onSubmitted }: ExamPageProps)
       await fetchCorrection();
 
       toast.success("Answers submitted successfully!");
+      window.location.reload();
     } catch (error: any) {
       if (error.reason === "Already submitted") {
         try {

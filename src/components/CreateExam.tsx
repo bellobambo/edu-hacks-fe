@@ -273,6 +273,7 @@ export default function CreateExamWithAI({ onClose }: { onClose?: () => void } =
       toast.success("Exam created successfully");
       onClose?.();
       navigate(`/all-exams?manageExamId=${Number(newExamId)}`);
+      window.location.reload();
     } catch (error: any) {
       setMessage(error.message || "Failed to create exam");
     }
