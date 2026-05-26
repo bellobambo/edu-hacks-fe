@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { getLMSContract } from "../utils/contracts";
 import { ethers } from "ethers";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import toast from "react-hot-toast";
 
-function UploadForm({
+export function UploadForm({
   onQuestionsGenerated,
 }: {
   onQuestionsGenerated?: (result: string) => void;
@@ -96,7 +97,7 @@ function UploadForm({
             type="file"
             onChange={handleFileChange}
             accept=".txt,.pdf,.docx"
-            className="w-full sm:w-auto border border-[#B49286]/30 rounded-lg p-3 bg-[#744253]/10 focus:ring-2 focus:ring-[#B49286]/50 focus:border-[#B49286]/50 text-[#071013]"
+            className="w-full sm:w-auto border border-[#B49286]/30 rounded-lg p-3 bg-[#744253]/90 focus:ring-2 focus:ring-[#B49286]/50 focus:border-[#B49286]/50 text-[#B49286]"
           />
         </div>
 
@@ -110,7 +111,7 @@ function UploadForm({
             max="50"
             value={questionCount}
             onChange={(e) => setQuestionCount(Number(e.target.value))}
-            className="w-full sm:w-auto border border-[#B49286]/30 rounded-lg p-3 bg-[#744253]/10 focus:ring-2 focus:ring-[#B49286]/50 focus:border-[#B49286]/50 text-[#071013]"
+            className="w-full sm:w-auto border border-[#B49286]/30 rounded-lg p-3 bg-[#744253]/90 focus:ring-2 focus:ring-[#B49286]/50 focus:border-[#B49286]/50 text-[#B49286]"
           />
         </div>
       </div>
@@ -123,7 +124,7 @@ function UploadForm({
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Week 3 biology lesson on photosynthesis"
-          className="w-full border border-[#B49286]/30 rounded-lg p-3 bg-[#744253]/10 focus:ring-2 focus:ring-[#B49286]/50 focus:border-[#B49286]/50 text-[#071013] min-h-[100px]"
+          className="w-full border border-[#B49286]/30 rounded-lg p-3 bg-[#744253]/90 focus:ring-2 focus:ring-[#B49286]/50 focus:border-[#B49286]/50 text-[#B49286] placeholder-[#B49286]/60 min-h-[100px]"
         />
       </div>
 
@@ -174,7 +175,7 @@ function UploadForm({
           <p className="font-medium text-[#B49286]">
             Generated Questions Preview:
           </p>
-          <div className="mt-3 p-3 bg-[#744253]/10 rounded-md text-[#071013] whitespace-pre-wrap">
+          <div className="mt-3 p-3 bg-[#744253]/70 rounded-md text-[#B49286] whitespace-pre-wrap">
             {result}
           </div>
         </div>
@@ -190,14 +191,6 @@ export default function CreateExamWithAI({ onClose }: { onClose?: () => void } =
   const [examTitle, setExamTitle] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const [examId, setExamId] = useState<number | null>(null);
-  const [questionText, setQuestionText] = useState("");
-  const [options, setOptions] = useState(["", "", "", ""]);
-  const [correctOption, setCorrectOption] = useState(0);
-  const [generatedQuestions, setGeneratedQuestions] = useState<any[]>([]);
-  const [showUploadForm, setShowUploadForm] = useState(false);
-  const [showQuestionDrawer, setShowQuestionDrawer] = useState(false);
-  const [selectedQuestions, setSelectedQuestions] = useState<number[]>([]);
   const [courses, setCourses] = useState<any[]>([]);
   const [coursesLoading, setCoursesLoading] = useState(false);
 
@@ -277,155 +270,14 @@ export default function CreateExamWithAI({ onClose }: { onClose?: () => void } =
 
       const examIds = await contract.getAllExamIds();
       const newExamId = examIds[examIds.length - 1];
-      setExamId(Number(newExamId));
-      setShowQuestionDrawer(true);
-
-      setMessage("Exam created successfully! Now add questions below.");
+      toast.success("Exam created successfully");
+      onClose?.();
+      navigate(`/all-exams?manageExamId=${Number(newExamId)}`);
     } catch (error: any) {
       setMessage(error.message || "Failed to create exam");
     }
     setLoading(false);
   };
-  const addQuestion = async () => {
-    if (examId === null) return;
-
-    setLoading(true);
-    try {
-      const contract = await getLMSContract();
-      if (!contract) throw new Error("Contract not found");
-
-      if (!questionText.trim()) throw new Error("Question text is required");
-      if (options.some((opt) => !opt.trim()))
-        throw new Error("All options must be filled");
-
-      const tx = await contract.addQuestion(
-        examId,
-        questionText,
-        options,
-        correctOption
-      );
-      await tx.wait();
-
-      setMessage("Question added successfully!");
-      setQuestionText("");
-      setOptions(["", "", "", ""]);
-      setCorrectOption(0);
-    } catch (error: any) {
-      setMessage(error.message || "Failed to add question");
-    }
-    setLoading(false);
-  };
-
-  const handleOptionChange = (index: number, value: string) => {
-    const newOptions = [...options];
-    newOptions[index] = value;
-    setOptions(newOptions);
-  };
-
-  const handleQuestionsGenerated = (result: string) => {
-    try {
-      const parsedQuestions = parseQuestions(result);
-      setGeneratedQuestions(parsedQuestions);
-      setSelectedQuestions(parsedQuestions.map((_, index) => index)); // Select all by default
-      setMessage(
-        `${parsedQuestions.length} questions generated successfully! All selected by default.`
-      );
-    } catch (error) {
-      setMessage("Failed to parse generated questions");
-    }
-  };
-
-  const toggleQuestionSelection = (index: number) => {
-    setSelectedQuestions((prev) =>
-      prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]
-    );
-  };
-
-  const toggleSelectAll = () => {
-    if (selectedQuestions.length === generatedQuestions.length) {
-      setSelectedQuestions([]);
-    } else {
-      setSelectedQuestions(generatedQuestions.map((_, index) => index));
-    }
-  };
-
-  const addSelectedQuestions = async () => {
-    if (examId === null || selectedQuestions.length === 0) return;
-
-    setLoading(true);
-    try {
-      const contract = await getLMSContract();
-      if (!contract) throw new Error("Contract not found");
-
-      // Prepare arrays for batch upload
-      const questionTexts: string[] = [];
-      const optionsList: string[][] = [];
-      const correctOptions: number[] = [];
-
-      // Collect all selected questions
-      for (const index of selectedQuestions) {
-        const question = generatedQuestions[index];
-        if (!question) continue;
-
-        questionTexts.push(question.text);
-        optionsList.push(question.options);
-        correctOptions.push(question.correctOption);
-      }
-
-      // Use batch upload function
-      const tx = await contract.addQuestionsBatch(
-        examId,
-        questionTexts,
-        optionsList,
-        correctOptions
-      );
-      await tx.wait();
-
-      setMessage(
-        `Successfully added ${selectedQuestions.length} questions to the exam in one transaction!`
-      );
-      setSelectedQuestions([]);
-      setGeneratedQuestions([]); // Clear the generated questions after upload
-    } catch (error: any) {
-      setMessage(error.message || "Failed to add questions");
-    }
-    setLoading(false);
-  };
-
-  function parseQuestions(result: string): any[] {
-    // This is a simple parser - adjust based on your actual API response format
-    const questionBlocks = result.split("\n\n").filter((block) => block.trim());
-
-    return questionBlocks
-      .map((block) => {
-        const lines = block.split("\n").filter((line) => line.trim());
-        if (lines.length < 5) return null; // Skip invalid questions
-
-        const question = {
-          text: lines[0],
-          options: lines.slice(1, 5),
-          correctOption: 0, // Default to first option - you might need to detect the correct one
-        };
-
-        // Try to detect correct option (assuming it's marked with (*) or similar)
-        for (let i = 0; i < question.options.length; i++) {
-          if (
-            question.options[i].includes("(correct)") ||
-            question.options[i].includes("*")
-          ) {
-            question.correctOption = i;
-            question.options[i] = question.options[i]
-              .replace("(correct)", "")
-              .replace("*", "")
-              .trim();
-            break;
-          }
-        }
-
-        return question;
-      })
-      .filter(Boolean);
-  }
 
   const closeForm = () => {
     if (onClose) {
@@ -450,8 +302,7 @@ export default function CreateExamWithAI({ onClose }: { onClose?: () => void } =
       </div>
 
       {/* Exam Creation Form */}
-      {!examId ? (
-        <div className="space-y-3 mb-4">
+      <div className="space-y-3 mb-4">
           <div>
             <label className="block mb-1 text-[#B49286]">Select Course</label>
             {coursesLoading ? (
@@ -508,198 +359,7 @@ export default function CreateExamWithAI({ onClose }: { onClose?: () => void } =
               {loading ? "Creating Exam..." : "Create Exam"}
             </button>
           </div>
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {/* Exam Created Success Section */}
-          <div className="bg-[#B49286]/10 border border-[#B49286]/20 rounded-lg p-4">
-            <div className="flex justify-between items-center">
-              <div>
-                <h2 className="text-xl font-semibold text-[#B49286]">
-                  Exam Created Successfully!
-                </h2>
-                <p className="text-[#B49286]/90">
-                  Now add questions to your exam: {examTitle}
-                </p>
-              </div>
-              <button
-                onClick={() => {
-                  setExamId(null);
-                  setShowQuestionDrawer(false);
-                  setMessage("");
-                  setGeneratedQuestions([]);
-                }}
-                className="bg-[#B49286]/20 hover:bg-[#B49286]/30 text-[#B49286] px-4 py-2 rounded transition-colors"
-              >
-                Back to Exam Creation
-              </button>
-              <button
-                onClick={() => setShowQuestionDrawer(true)}
-                className="bg-[#B49286] hover:bg-[#B49286]/90 text-[#744253] px-4 py-2 rounded transition-colors font-medium"
-              >
-                Add Questions
-              </button>
-            </div>
-          </div>
-
-          {/* Question Management Section */}
-          {showQuestionDrawer && (
-            <div className="fixed inset-0 z-[90] bg-[#071013]/60">
-              <aside className="ml-auto h-full w-full max-w-2xl bg-[#744253] shadow-2xl border-l border-[#B49286]/20 overflow-y-auto p-4 sm:p-6">
-            <div className="flex justify-between items-start gap-3 mb-6">
-              <h2 className="text-xl font-semibold text-[#B49286]">
-                Add Questions
-              </h2>
-              <div className="flex flex-wrap justify-end gap-2">
-                <button
-                  onClick={() => setShowUploadForm(!showUploadForm)}
-                  className={`px-4 py-2 rounded-md transition-colors ${
-                    showUploadForm
-                      ? "bg-[#B49286]/20 text-[#B49286]"
-                      : "bg-[#B49286] text-[#744253]"
-                  }`}
-                >
-                  {showUploadForm ? "Hide AI Generator" : "Generate with AI"}
-                </button>
-                <button
-                  onClick={() => setShowQuestionDrawer(false)}
-                  className="px-4 py-2 rounded-md border border-[#B49286]/30 text-[#B49286] hover:bg-[#B49286]/10 transition-colors"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-
-            {/* AI Question Generator */}
-            {showUploadForm && (
-              <div className="mb-6 p-4 border border-[#B49286]/20 rounded-lg bg-[#744253]/80">
-                <UploadForm onQuestionsGenerated={handleQuestionsGenerated} />
-              </div>
-            )}
-
-            {/* Generated Questions List */}
-            {generatedQuestions.length > 0 && (
-              <div className="mb-6 p-4 border border-[#B49286]/20 rounded-lg bg-[#744253]/80">
-                <div className="flex justify-between items-center mb-3">
-                  <h3 className="font-semibold text-[#B49286]">
-                    Generated Questions ({generatedQuestions.length})
-                  </h3>
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={toggleSelectAll}
-                      className="text-sm bg-[#B49286]/20 hover:bg-[#B49286]/30 text-[#B49286] px-3 py-1 rounded transition-colors"
-                    >
-                      {selectedQuestions.length === generatedQuestions.length
-                        ? "Deselect All"
-                        : "Select All"}
-                    </button>
-                    <button
-                      onClick={addSelectedQuestions}
-                      disabled={loading || selectedQuestions.length === 0}
-                      className="text-sm bg-[#B49286] hover:bg-[#B49286]/90 text-[#744253] px-3 py-1 rounded transition-colors shadow disabled:opacity-50"
-                    >
-                      {loading ? "Uploading..." : "Upload All Selected"}
-                    </button>
-                  </div>
-                </div>
-                <div className="max-h-96 overflow-y-auto space-y-3">
-                  {generatedQuestions.map((q, i) => (
-                    <div
-                      key={i}
-                      className={`p-3 border rounded transition-colors cursor-pointer ${
-                        selectedQuestions.includes(i)
-                          ? "bg-[#B49286]/20 border-[#B49286]/30"
-                          : "hover:bg-[#B49286]/10 border-[#B49286]/20"
-                      }`}
-                      onClick={() => toggleQuestionSelection(i)}
-                    >
-                      <div className="flex items-start">
-                        <input
-                          type="checkbox"
-                          checked={selectedQuestions.includes(i)}
-                          onChange={() => toggleQuestionSelection(i)}
-                          className="mt-1 mr-2 accent-[#B49286]"
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                        <div className="flex-1 text-[#B49286]">
-                          <p className="font-medium">{q.text}</p>
-                          <div className="mt-2 space-y-1">
-                            {q.options.map((opt: string, j: number) => (
-                              <div
-                                key={j}
-                                className={`pl-2 ${
-                                  j === q.correctOption
-                                    ? "border-l-2 border-[#B49286] font-medium"
-                                    : ""
-                                }`}
-                              >
-                                {opt}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Manual Question Entry */}
-            <div className="p-4 border border-[#B49286]/20 rounded-lg bg-[#744253]/80">
-              <h3 className="font-semibold mb-3 text-[#B49286]">
-                Manual Question Entry
-              </h3>
-              <div className="mb-3">
-                <label className="block mb-1 text-[#B49286]">
-                  Question Text
-                </label>
-                <input
-                  type="text"
-                  placeholder="Enter question text"
-                  value={questionText}
-                  onChange={(e) => setQuestionText(e.target.value)}
-                  className="border border-[#B49286]/30 p-2 w-full rounded bg-[#744253]/90 text-[#B49286] placeholder-[#B49286]/60 focus:outline-none focus:ring-1 focus:ring-[#B49286]"
-                />
-              </div>
-
-              <div className="mb-3">
-                <label className="block mb-1 text-[#B49286]">Options</label>
-                {options.map((option, index) => (
-                  <div key={index} className="flex items-center mb-2">
-                    <input
-                      type="radio"
-                      name="correctOption"
-                      checked={correctOption === index}
-                      onChange={() => setCorrectOption(index)}
-                      className="mr-2 accent-[#B49286]"
-                    />
-                    <input
-                      type="text"
-                      placeholder={`Option ${index + 1}`}
-                      value={option}
-                      onChange={(e) =>
-                        handleOptionChange(index, e.target.value)
-                      }
-                      className="border border-[#B49286]/30 p-2 flex-grow rounded bg-[#744253]/90 text-[#B49286] placeholder-[#B49286]/60 focus:outline-none focus:ring-1 focus:ring-[#B49286]"
-                    />
-                  </div>
-                ))}
-              </div>
-
-              <button
-                disabled={loading || !questionText || options.some((o) => !o)}
-                onClick={addQuestion}
-                className="w-full bg-[#B49286] hover:bg-[#B49286]/90 text-[#744253] px-6 py-3 rounded-lg transition-colors shadow disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-              >
-                {loading ? "Adding Question..." : "Add Question"}
-              </button>
-            </div>
-              </aside>
-            </div>
-          )}
-        </div>
-      )}
+      </div>
 
       {/* Status Messages */}
       {message && (

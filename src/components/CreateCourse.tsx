@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { getLMSContract } from "../utils/contracts";
+import toast from "react-hot-toast";
 
 type CreateCourseProps = {
   onCreated?: () => void;
@@ -25,7 +26,7 @@ export default function CreateCourse({
       if (!contract) throw new Error("No contract found");
       const tx = await contract.createCourse(title, description);
       await tx.wait();
-      setMessage("Course created successfully!");
+      toast.success("Course created successfully!");
       setTitle("");
       setDescription("");
       onCreated?.();

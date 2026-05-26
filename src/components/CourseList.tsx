@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getLMSContract } from "../utils/contracts";
 import { ethers } from "ethers";
 import { Link } from "react-router-dom";
+import toast from "react-hot-toast";
 
 type Course = {
   courseId: bigint;
@@ -36,6 +37,9 @@ export default function CourseList({ refreshKey = 0 }: CourseListProps) {
     text: string;
     type: "success" | "error";
   } | null>(null);
+  const [enrolledCourseIds, setEnrolledCourseIds] = useState<Set<number>>(
+    new Set()
+  );
 
   useEffect(() => {
     const fetchCoursesAndProfile = async () => {
@@ -58,12 +62,13 @@ export default function CourseList({ refreshKey = 0 }: CourseListProps) {
           mainCourse: user[4],
         });
 
-        // Fetch courses
         const courseIds = await contract.getAllCourseIds();
         const courseArray: Course[] = [];
+        const enrolledIds = new Set<number>();
 
         for (const id of courseIds) {
           const course = await contract.getCourseInfo(id);
+          const numericCourseId = Number(course[0]);
           courseArray.push({
             courseId: course[0],
             title: course[1],
@@ -72,9 +77,20 @@ export default function CourseList({ refreshKey = 0 }: CourseListProps) {
             lecturerName: course[4],
             creationDate: course[5],
           });
+
+          if (!user[3]) {
+            const enrolled = await contract.isStudentEnrolled(
+              address,
+              numericCourseId
+            );
+            if (enrolled) {
+              enrolledIds.add(numericCourseId);
+            }
+          }
         }
 
         setCourses(courseArray);
+        setEnrolledCourseIds(enrolledIds);
       } catch (error) {
         console.error("Error fetching data:", error);
       }
@@ -95,11 +111,8 @@ export default function CourseList({ refreshKey = 0 }: CourseListProps) {
       const tx = await contract.enrollInCourse(courseId);
       await tx.wait();
 
-      setEnrollMessage({
-        courseId,
-        text: "Enrolled successfully!",
-        type: "success",
-      });
+      setEnrolledCourseIds((current) => new Set(current).add(courseId));
+      toast.success("Enrolled successfully!");
     } catch (error: any) {
       setEnrollMessage({
         courseId,
@@ -126,6 +139,7 @@ export default function CourseList({ refreshKey = 0 }: CourseListProps) {
             const isCreator =
               profile?.walletAddress?.toLowerCase() ===
               course.lecturer.toLowerCase();
+            const isEnrolled = enrolledCourseIds.has(courseId);
 
             return (
               <div
@@ -153,27 +167,25 @@ export default function CourseList({ refreshKey = 0 }: CourseListProps) {
                 </div>
 
                 {!profile?.isLecturer && (
-                  <div className="mt-4">
-                    <button
-                      onClick={() => enrollInCourse(courseId)}
-                      disabled={enrollingCourseId === courseId}
-                      className="w-full bg-[#B49286] hover:bg-[#B49286]/90 text-[#744253] px-4 py-2 rounded transition-colors shadow disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm sm:text-base"
-                    >
-                      {enrollingCourseId === courseId
-                        ? "Enrolling..."
-                        : "Enroll"}
-                    </button>
+                  <div className="mt-4 space-y-2">
+                    {isEnrolled ? (
+                      <>
+                        <span className="block w-full text-center bg-[#B49286]/20 text-[#B49286] px-4 py-2 rounded text-sm font-medium border border-[#B49286]/30">
+                          ✓ Enrolled
+                        </span>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => enrollInCourse(courseId)}
+                        disabled={enrollingCourseId === courseId}
+                        className="w-full bg-[#B49286] hover:bg-[#B49286]/90 text-[#744253] px-4 py-2 rounded transition-colors shadow disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm sm:text-base"
+                      >
+                        {enrollingCourseId === courseId ? "Enrolling..." : "Enroll"}
+                      </button>
+                    )}
 
                     {enrollMessage?.courseId === courseId && (
-                      <p
-                        className={`mt-2 text-sm ${
-                          enrollMessage.type === "success"
-                            ? "text-green-200"
-                            : "text-red-200"
-                        }`}
-                      >
-                        {enrollMessage.text}
-                      </p>
+                      <p className="text-sm text-red-200">{enrollMessage.text}</p>
                     )}
                   </div>
                 )}
