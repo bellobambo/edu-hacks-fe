@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { getLMSContract } from "../utils/contracts";
-import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
 export default function Profile() {
@@ -12,8 +11,6 @@ export default function Profile() {
   const [matric, setMatric] = useState("");
   const [isLecturer, setIsLecturer] = useState(false);
   const [mainCourse, setMainCourse] = useState("");
-
-  const navigate = useNavigate();
 
   const registerUser = async () => {
     setLoading(true);
@@ -29,7 +26,7 @@ export default function Profile() {
       );
       await tx.wait();
       toast.success("Registered successfully!");
-      navigate("/");
+      window.location.reload();
     } catch (error: any) {
       setMessage(error.message || "Registration failed");
     }

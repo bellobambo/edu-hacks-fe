@@ -438,6 +438,7 @@ Answer: C
       setDraftQuestions([]);
       toast.success("Questions uploaded on-chain successfully.");
       await fetchQuestions();
+      window.location.reload();
     } catch (error: any) {
       setMessage(error.message || "Failed to upload questions.");
     } finally {
