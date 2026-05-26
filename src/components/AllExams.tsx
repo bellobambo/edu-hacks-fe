@@ -153,13 +153,11 @@ const AllExams = () => {
                   const isExamCreator =
                     isLecturer &&
                     walletAddress?.toLowerCase() === exam.lecturer.toLowerCase();
-                  if (isLecturer && !isExamCreator) {
-                    return null;
-                  }
                   return (
                     <button
                       onClick={() => setActiveExam(exam)}
-                      className="mt-3 w-full bg-[#B49286] hover:bg-[#B49286]/90 text-[#744253] px-4 py-2 rounded transition-colors shadow text-sm sm:text-base font-medium"
+                      disabled={isLecturer && !isExamCreator}
+                      className="mt-3 w-full bg-[#B49286] hover:bg-[#B49286]/90 text-[#744253] px-4 py-2 rounded transition-colors shadow text-sm sm:text-base font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isLecturer
                         ? exam.questionCount > 0
