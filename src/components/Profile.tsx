@@ -26,7 +26,7 @@ export default function Profile() {
       );
       await tx.wait();
       toast.success("Registered successfully!");
-      window.location.reload();
+      setTimeout(() => window.location.reload(), 1500);
     } catch (error: any) {
       setMessage(error.message || "Registration failed");
     }

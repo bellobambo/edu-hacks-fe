@@ -448,7 +448,7 @@ Answer: C
       setDraftQuestions([]);
       toast.success("Questions uploaded on-chain successfully.");
       await fetchQuestions();
-      window.location.reload();
+      setTimeout(() => window.location.reload(), 1500);
     } catch (error: any) {
       setMessage(error.message || "Failed to upload questions.");
     } finally {
