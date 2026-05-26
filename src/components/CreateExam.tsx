@@ -3,8 +3,7 @@
 import { useEffect, useState } from "react";
 import { getLMSContract } from "../utils/contracts";
 import { ethers } from "ethers";
-import ExamList from "./ExamList";
-import { Link, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 function UploadForm({
   onQuestionsGenerated,
@@ -184,7 +183,8 @@ function UploadForm({
   );
 }
 
-export default function CreateExamWithAI() {
+export default function CreateExamWithAI({ onClose }: { onClose?: () => void } = {}) {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [courseId, setCourseId] = useState("");
   const [examTitle, setExamTitle] = useState("");
@@ -427,21 +427,31 @@ export default function CreateExamWithAI() {
       .filter(Boolean);
   }
 
+  const closeForm = () => {
+    if (onClose) {
+      onClose();
+      return;
+    }
+
+    navigate("/profile");
+  };
+
   return (
-    <main className="max-w-6xl mx-auto p-4 sm:p-6 bg-[#744253] rounded-lg shadow-md border border-[#B49286]/20">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        <h1 className="text-2xl font-bold text-[#B49286]">Create Exam</h1>
-        <Link
-          to="/profile"
-          className="bg-[#B49286]/15 hover:bg-[#B49286]/25 text-[#B49286] px-4 py-2 rounded-lg transition-colors text-sm font-medium text-center"
+    <main className="w-full max-w-lg mx-auto p-4 bg-[#744253] rounded-lg shadow-md border border-[#B49286]/20">
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-xl font-bold text-[#B49286]">Create Exam</h1>
+        <button
+          onClick={closeForm}
+          className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#B49286] text-[#744253] font-bold text-base hover:bg-[#B49286]/80 transition-colors shadow"
+          aria-label="Close create exam form"
         >
-          Courses
-        </Link>
+          &times;
+        </button>
       </div>
 
       {/* Exam Creation Form */}
       {!examId ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div className="space-y-3 mb-4">
           <div>
             <label className="block mb-1 text-[#B49286]">Select Course</label>
             {coursesLoading ? (
@@ -473,7 +483,7 @@ export default function CreateExamWithAI() {
                     value={Number(course.courseId)}
                     className="bg-[#744253]"
                   >
-                    {course.title} (ID: {Number(course.courseId)})
+                  {course.title}
                   </option>
                 ))}
               </select>
@@ -489,7 +499,7 @@ export default function CreateExamWithAI() {
               className="border border-[#B49286]/30 p-2 w-full rounded bg-[#744253]/90 text-[#B49286] placeholder-[#B49286]/60 focus:outline-none focus:ring-1 focus:ring-[#B49286]"
             />
           </div>
-          <div className="md:col-span-2">
+          <div>
             <button
               disabled={loading || !courseId || !examTitle}
               onClick={createExam}
@@ -704,16 +714,6 @@ export default function CreateExamWithAI() {
         </div>
       )}
 
-      <div className="pt-4 border-t border-[#B49286]/20">
-        <a
-          href="/all-exams"
-          className="inline-block text-[#B49286] hover:text-[#B49286]/90 hover:underline transition-colors"
-        >
-          All Exams
-        </a>
-      </div>
-
-      <>{courseId && <ExamList courseId={Number(courseId)} />}</>
     </main>
   );
 }
