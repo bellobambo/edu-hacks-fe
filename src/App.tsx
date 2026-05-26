@@ -298,7 +298,7 @@ function App() {
             {/* Left: logo + user greeting */}
             <div className="flex items-center gap-4">
               <Link
-                to="/profile"
+                to="/"
                 className="text-xl font-bold text-[#B49286] tracking-tight"
               >
                 Proof
@@ -320,7 +320,7 @@ function App() {
             <div className="flex items-center gap-2 sm:gap-3">
               {!userProfile && (
                 <Link
-                  to="/profile"
+                  to="/"
                   className="bg-[#B49286] text-[#744253] text-xs sm:text-sm font-semibold px-3 py-1.5 rounded-lg hover:bg-[#B49286]/90 transition-colors"
                 >
                   Register
@@ -357,15 +357,13 @@ function App() {
         <Routes>
           <Route
             path="/"
-            element={<Navigate to="/profile" replace />}
-          />
-          <Route path="/course/:courseId" element={<ExamListWrapper />} />
-          <Route path="/all-exams" element={<AllExams />} />
-          <Route path="/exams/:examId" element={<ExamPage />} />
-          <Route
-            path="/profile"
             element={<MainPage userProfile={userProfile} />}
           />
+          <Route path="/profile" element={<Navigate to="/" replace />} />
+          <Route path="/course/:courseId" element={<ExamListWrapper />} />
+          <Route path="/all-exams" element={<AllExams />} />
+          <Route path="/exams" element={<AllExams />} />
+          <Route path="/exams/:examId" element={<ExamPage />} />
           <Route path="/create-course" element={<CreateCourse />} />
           <Route path="/course-list" element={<CourseList />} />
           <Route path="/create-exam" element={<CreateExamWithAI />} />
@@ -381,6 +379,7 @@ function MainPage({ userProfile }: { userProfile: {
 } | null }) {
   const [activeView, setActiveView] = useState<"courses" | "exams">("courses");
   const [showCreateCourseModal, setShowCreateCourseModal] = useState(false);
+  const [showCreateExamModal, setShowCreateExamModal] = useState(false);
   const [courseRefreshKey, setCourseRefreshKey] = useState(0);
 
   return (
@@ -413,14 +412,24 @@ function MainPage({ userProfile }: { userProfile: {
               </button>
             </div>
 
-            {userProfile.isLecturer && activeView === "courses" && (
-              <button
-                onClick={() => setShowCreateCourseModal(true)}
-                className="bg-[#744253] hover:bg-[#744253]/90 text-[#B49286] px-4 py-2 rounded-lg transition-colors shadow text-sm font-medium"
-              >
-                Create Course
-              </button>
-            )}
+            <div className="flex gap-2">
+              {userProfile.isLecturer && activeView === "courses" && (
+                <button
+                  onClick={() => setShowCreateCourseModal(true)}
+                  className="bg-[#744253] hover:bg-[#744253]/90 text-[#B49286] px-4 py-2 rounded-lg transition-colors shadow text-sm font-medium"
+                >
+                  Create Course
+                </button>
+              )}
+              {userProfile.isLecturer && activeView === "exams" && (
+                <button
+                  onClick={() => setShowCreateExamModal(true)}
+                  className="bg-[#744253] hover:bg-[#744253]/90 text-[#B49286] px-4 py-2 rounded-lg transition-colors shadow text-sm font-medium"
+                >
+                  Create Exam
+                </button>
+              )}
+            </div>
           </div>
 
           {activeView === "courses" ? (
@@ -440,6 +449,17 @@ function MainPage({ userProfile }: { userProfile: {
                     setShowCreateCourseModal(false);
                   }}
                 />
+              </div>
+            </div>
+          )}
+
+          {showCreateExamModal && (
+            <div className="fixed inset-0 z-[80] bg-[#071013]/60 flex items-center justify-center p-4">
+              <div className="w-full max-w-xs max-h-[90vh] overflow-y-auto rounded-lg">
+                <CreateExamWithAI onClose={() => {
+                  setShowCreateExamModal(false);
+                  setActiveView("courses");
+                }} />
               </div>
             </div>
           )}
