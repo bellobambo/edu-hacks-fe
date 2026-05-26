@@ -115,7 +115,7 @@ export default function CourseList({ refreshKey = 0 }: CourseListProps) {
       toast.success("Enrolled successfully!");
       setEnrolledCourseIds((current) => new Set(current).add(courseId));
       setInternalRefreshKey((k) => k + 1);
-      window.location.reload();
+      setTimeout(() => window.location.reload(), 1500);
     } catch (error: any) {
       setEnrollMessage({
         courseId,

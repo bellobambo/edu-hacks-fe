@@ -271,9 +271,10 @@ export default function CreateExamWithAI({ onClose }: { onClose?: () => void } =
       const examIds = await contract.getAllExamIds();
       const newExamId = examIds[examIds.length - 1];
       toast.success("Exam created successfully");
-      onClose?.();
-      navigate(`/all-exams?manageExamId=${Number(newExamId)}`);
-      window.location.reload();
+      setTimeout(() => {
+        onClose?.();
+        navigate(`/all-exams?manageExamId=${Number(newExamId)}`);
+      }, 1500);
     } catch (error: any) {
       setMessage(error.message || "Failed to create exam");
     }
