@@ -117,7 +117,7 @@ function App() {
 
       setError(null);
       await fetchUserProfile();
-      navigate("/profile");
+      navigate("/");
     } catch (err: any) {
       setError(err.message || "Failed to connect");
       toast.error(err.message || "Failed to connect");
@@ -213,7 +213,7 @@ function App() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#B49286] p-4 sm:p-6">
         <Toaster
-          position="top-right"
+          position="bottom-center"
           toastOptions={{
             style: {
               background: "#744253",
@@ -267,7 +267,7 @@ function App() {
   return (
     <div className="min-h-screen bg-[#B49286]">
       <Toaster
-        position="top-right"
+        position="bottom-center"
         toastOptions={{
           style: {
             background: "#744253",
@@ -360,6 +360,7 @@ function App() {
             element={<MainPage userProfile={userProfile} />}
           />
           <Route path="/profile" element={<Navigate to="/" replace />} />
+          <Route path="/courses" element={<CourseList />} />
           <Route path="/course/:courseId" element={<ExamListWrapper />} />
           <Route path="/all-exams" element={<AllExams />} />
           <Route path="/exams" element={<AllExams />} />

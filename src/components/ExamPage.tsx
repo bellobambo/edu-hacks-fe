@@ -2,6 +2,7 @@ import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getLMSContract } from "../utils/contracts";
 import { useWallet } from "../utils/useWallet";
+import toast from "react-hot-toast";
 
 type Question = {
   questionText: string;
@@ -36,6 +37,7 @@ export default function ExamPage({ examIdOverride, onSubmitted }: ExamPageProps)
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [submittedScore, setSubmittedScore] = useState<number | null>(null);
   const [message, setMessage] = useState<MessageType | null>(null);
   const [maxPossibleScore, setMaxPossibleScore] = useState<number | null>(null);
@@ -79,15 +81,14 @@ export default function ExamPage({ examIdOverride, onSubmitted }: ExamPageProps)
           return;
         }
 
-        const submissions = await contract.getExamSubmissions(Number(examId));
-        const existing = submissions.find(
-          (sub: any) =>
-            sub.studentAddress.toLowerCase() === walletAddress.toLowerCase()
-        );
-
-        if (existing) {
-          setSubmittedScore(Number(existing.score)); // ✅ FIXED
-          await fetchCorrection();
+        try {
+          const [, , score, submissionTime] = await contract.getMyExamCorrection(Number(examId));
+          if (Number(submissionTime) > 0) {
+            setSubmittedScore(Number(score));
+            await fetchCorrection();
+          }
+        } catch {
+          // No prior submission
         }
 
         const [questionTexts, optionsList] =
@@ -145,7 +146,7 @@ export default function ExamPage({ examIdOverride, onSubmitted }: ExamPageProps)
       return;
     }
 
-    setLoading(true);
+    setSubmitting(true);
     setMessage(null);
     try {
       const contract = await getLMSContract();
@@ -155,43 +156,25 @@ export default function ExamPage({ examIdOverride, onSubmitted }: ExamPageProps)
       await tx.wait();
 
       // Get updated score
-      const submissions = await contract.getExamSubmissions(Number(examId));
-      const studentSubmission = submissions.find(
-        (sub: any) =>
-          sub.studentAddress.toLowerCase() === walletAddress.toLowerCase()
-      );
-
-      if (studentSubmission) {
-        setSubmittedScore(Number(studentSubmission.score));
-        if (examId) onSubmitted?.(Number(examId));
-      }
+      const [, , score] = await contract.getMyExamCorrection(Number(examId));
+      setSubmittedScore(Number(score));
+      if (examId) onSubmitted?.(Number(examId));
 
       await fetchCorrection();
 
-      setMessage({
-        text: "Answers submitted successfully!",
-        type: "success",
-      });
+      toast.success("Answers submitted successfully!");
     } catch (error: any) {
       if (error.reason === "Already submitted") {
         try {
-          const contract = await getLMSContract();
-          if (contract) {
-            const submissions = await contract.getExamSubmissions(
-              Number(examId)
-            );
-            const existing = submissions.find(
-              (sub: any) =>
-                sub.studentAddress.toLowerCase() === walletAddress.toLowerCase()
-            );
-            if (existing) {
-              setSubmittedScore(Number(existing.score));
-              await fetchCorrection();
-              setMessage({
-                text: "You've already submitted this exam. Here's your score.",
-                type: "info",
-              });
-            }
+          const contract2 = await getLMSContract();
+          if (contract2) {
+            const [, , score] = await contract2.getMyExamCorrection(Number(examId));
+            setSubmittedScore(Number(score));
+            await fetchCorrection();
+            setMessage({
+              text: "You've already submitted this exam. Here's your score.",
+              type: "info",
+            });
           }
         } catch (fetchError) {
           console.error("Error fetching score:", fetchError);
@@ -216,7 +199,7 @@ export default function ExamPage({ examIdOverride, onSubmitted }: ExamPageProps)
         });
       }
     }
-    setLoading(false);
+    setSubmitting(false);
   };
 
   const explainAnswer = async (questionIndex: number) => {
@@ -273,25 +256,21 @@ export default function ExamPage({ examIdOverride, onSubmitted }: ExamPageProps)
 
   return (
     <main className="max-w-3xl mx-auto px-4 sm:px-6 py-6">
-      <h1 className="text-xl sm:text-2xl font-bold mb-4 text-[#B49286]">
-        Exam #{examId}
-      </h1>
-
       {submittedScore !== null ? (
-        <div className="mb-6 bg-green-100 border border-green-300 rounded-lg p-4">
-          <h2 className="text-lg font-semibold text-green-800 mb-2">
+        <div className="mb-6">
+          <h2 className="text-lg font-semibold text-[#B49286] mb-4">
             Exam Results
           </h2>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
-              <p className="text-sm text-gray-700">Your Score:</p>
-              <p className="text-2xl font-bold text-green-700">
+              <p className="text-sm text-[#B49286]/70">Your Score:</p>
+              <p className="text-3xl font-bold text-emerald-300/80">
                 {submittedScore} {maxPossibleScore && `/ ${maxPossibleScore}`}
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-700">Percentage:</p>
-              <p className="text-2xl font-bold text-green-700">
+              <p className="text-sm text-[#B49286]/70">Percentage:</p>
+              <p className="text-3xl font-bold text-emerald-300/80">
                 {maxPossibleScore
                   ? `${Math.round(
                       (Number(submittedScore) / Number(maxPossibleScore)) * 100
@@ -300,18 +279,25 @@ export default function ExamPage({ examIdOverride, onSubmitted }: ExamPageProps)
               </p>
             </div>
           </div>
-          <p className="mt-2 text-sm text-gray-700 break-all">
-            Wallet: {walletAddress}
-          </p>
+          <a
+            href={`https://opencampus-codex.blockscout.com/address/${walletAddress}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block text-sm text-[#B49286]/80 underline hover:text-[#B49286] mb-4"
+          >
+            View on-chain ↗
+          </a>
 
           {correction && (
-            <div className="mt-6 space-y-4">
-              <h3 className="text-base font-semibold text-green-900">
+            <div className="mt-4 space-y-4">
+              <h3 className="text-base font-semibold text-[#B49286]">
                 Answer Review
               </h3>
 
               {correction.questions.map((question, index) => {
                 const selectedAnswerIndex = correction.submittedAnswers[index];
+                const selectedLabel = String.fromCharCode(97 + selectedAnswerIndex);
+                const correctLabel = String.fromCharCode(97 + question.correctOption);
                 const selectedAnswer =
                   question.options[selectedAnswerIndex] ?? "No answer";
                 const correctAnswer =
@@ -322,32 +308,32 @@ export default function ExamPage({ examIdOverride, onSubmitted }: ExamPageProps)
                 return (
                   <div
                     key={index}
-                    className="rounded-lg border border-green-200 bg-white p-3"
+                    className="rounded-lg border border-[#B49286]/20 p-3"
                   >
-                    <p className="font-medium text-gray-900">
+                    <p className="font-medium text-[#B49286]">
                       {index + 1}. {question.questionText}
                     </p>
-                    <p className="mt-2 text-sm text-gray-700">
+                    <p className="mt-2 text-sm text-[#B49286]/80">
                       Your answer:{" "}
                       <span
                         className={
-                          isCorrect ? "font-medium text-green-700" : "font-medium text-red-700"
+                          isCorrect ? "font-medium text-emerald-300/80" : "font-medium text-rose-300/80"
                         }
                       >
-                        {selectedAnswer}
+                        {selectedLabel}. {selectedAnswer}
                       </span>
                     </p>
-                    <p className="text-sm text-gray-700">
+                    <p className="text-sm text-[#B49286]/80">
                       Correct answer:{" "}
-                      <span className="font-medium text-green-700">
-                        {correctAnswer}
+                      <span className="font-medium text-emerald-300/80">
+                        {correctLabel}. {correctAnswer}
                       </span>
                     </p>
 
                     <button
                       onClick={() => explainAnswer(index)}
                       disabled={explainingIndex === index}
-                      className="mt-3 bg-[#744253] hover:bg-[#744253]/90 text-[#B49286] px-3 py-1.5 rounded text-sm disabled:opacity-50"
+                      className="mt-3 bg-[#B49286]/20 hover:bg-[#B49286]/30 text-[#B49286] px-3 py-1.5 rounded text-sm disabled:opacity-50 border border-[#B49286]/30"
                     >
                       {explainingIndex === index
                         ? "Explaining..."
@@ -355,7 +341,7 @@ export default function ExamPage({ examIdOverride, onSubmitted }: ExamPageProps)
                     </button>
 
                     {explanations[index] && (
-                      <p className="mt-3 text-sm text-gray-800 bg-green-50 border border-green-100 rounded p-3">
+                      <p className="mt-3 text-sm text-[#B49286]/90 border border-[#B49286]/20 rounded p-3">
                         {explanations[index]}
                       </p>
                     )}
@@ -387,7 +373,7 @@ export default function ExamPage({ examIdOverride, onSubmitted }: ExamPageProps)
                         className="mr-2 accent-[#B49286]"
                         disabled={examEnded}
                       />
-                      {opt}
+                      <span className="font-medium mr-1">{String.fromCharCode(97 + idx)}.</span> {opt}
                     </label>
                   </li>
                 ))}
@@ -397,10 +383,10 @@ export default function ExamPage({ examIdOverride, onSubmitted }: ExamPageProps)
 
           <button
             onClick={submitAnswers}
-            disabled={loading || examEnded}
+            disabled={submitting || examEnded}
             className="bg-[#B49286] hover:bg-[#B49286]/90 text-[#744253] px-5 py-2 rounded-lg transition disabled:opacity-50"
           >
-            {loading
+            {submitting
               ? "Submitting..."
               : examEnded
               ? "Exam Ended"

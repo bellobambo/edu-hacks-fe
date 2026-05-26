@@ -27,7 +27,7 @@ export default function Profile() {
         mainCourse
       );
       await tx.wait();
-      navigate("/course-list");
+      navigate("/");
     } catch (error: any) {
       setMessage(error.message || "Registration failed");
     }
