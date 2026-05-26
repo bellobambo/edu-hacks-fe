@@ -40,6 +40,7 @@ export default function CourseList({ refreshKey = 0 }: CourseListProps) {
   const [enrolledCourseIds, setEnrolledCourseIds] = useState<Set<number>>(
     new Set()
   );
+  const [internalRefreshKey, setInternalRefreshKey] = useState(0);
 
   useEffect(() => {
     const fetchCoursesAndProfile = async () => {
@@ -98,7 +99,7 @@ export default function CourseList({ refreshKey = 0 }: CourseListProps) {
     };
 
     fetchCoursesAndProfile();
-  }, [refreshKey]);
+  }, [refreshKey, internalRefreshKey]);
 
   const enrollInCourse = async (courseId: number) => {
     setEnrollingCourseId(courseId);
@@ -111,8 +112,9 @@ export default function CourseList({ refreshKey = 0 }: CourseListProps) {
       const tx = await contract.enrollInCourse(courseId);
       await tx.wait();
 
-      setEnrolledCourseIds((current) => new Set(current).add(courseId));
       toast.success("Enrolled successfully!");
+      setEnrolledCourseIds((current) => new Set(current).add(courseId));
+      setInternalRefreshKey((k) => k + 1);
     } catch (error: any) {
       setEnrollMessage({
         courseId,
@@ -207,11 +209,7 @@ export default function CourseList({ refreshKey = 0 }: CourseListProps) {
                         Create Exam
                       </button>
                     )}
-                    {!isCreator && (
-                      <p className="mt-2 text-xs text-[#B49286]/75">
-                        Only the course creator can create exams.
-                      </p>
-                    )}
+
                   </div>
                 )}
               </div>

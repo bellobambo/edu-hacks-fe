@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { getLMSContract } from "../utils/contracts";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
 export default function Profile() {
   const [loading, setLoading] = useState(false);
@@ -27,6 +28,7 @@ export default function Profile() {
         mainCourse
       );
       await tx.wait();
+      toast.success("Registered successfully!");
       navigate("/");
     } catch (error: any) {
       setMessage(error.message || "Registration failed");
