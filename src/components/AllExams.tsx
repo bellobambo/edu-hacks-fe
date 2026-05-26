@@ -26,6 +26,9 @@ const AllExams = () => {
   const [submittedExamIds, setSubmittedExamIds] = useState<Set<number>>(
     new Set()
   );
+  const [enrolledCourseIds, setEnrolledCourseIds] = useState<Set<number>>(
+    new Set()
+  );
   const [activeExam, setActiveExam] = useState<Exam | null>(null);
 
   useEffect(() => {
@@ -90,6 +93,22 @@ const AllExams = () => {
         setExams(examArray);
         setSubmittedExamIds(submittedIds);
 
+        if (walletAddress && !currentIsLecturer) {
+          const enrolledIds = new Set<number>();
+          for (const exam of examArray) {
+            try {
+              const enrolled = await contract.isStudentEnrolled(
+                walletAddress,
+                exam.courseId
+              );
+              if (enrolled) enrolledIds.add(exam.courseId);
+            } catch {
+              // ignore
+            }
+          }
+          setEnrolledCourseIds(enrolledIds);
+        }
+
         const manageExamId = searchParams.get("manageExamId");
         if (manageExamId) {
           const examToManage = examArray.find(
@@ -135,6 +154,7 @@ const AllExams = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {exams.map((exam) => {
             const hasSubmitted = submittedExamIds.has(exam.examId);
+            const isEnrolledInCourse = isLecturer || enrolledCourseIds.has(exam.courseId);
 
             return (
               <div
@@ -156,7 +176,7 @@ const AllExams = () => {
                   return (
                     <button
                       onClick={() => setActiveExam(exam)}
-                      disabled={isLecturer && !isExamCreator}
+                      disabled={isLecturer && !isExamCreator || (!isLecturer && !isEnrolledInCourse)}
                       className="mt-3 w-full bg-[#B49286] hover:bg-[#B49286]/90 text-[#744253] px-4 py-2 rounded transition-colors shadow text-sm sm:text-base font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isLecturer
